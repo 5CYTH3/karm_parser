@@ -1,5 +1,7 @@
 mod tokens;
 use tokens::Token;
+
+use self::tokens::Operator;
 enum Statement {
     Expr(Box<Statement>),
     Block(StatementList),
@@ -13,6 +15,10 @@ pub struct Lexer {
 }
 
 pub enum Expr {
-    Binary(Box<Expr>, Box<Expr>),
+    Binary {
+        op: Operator,
+        left: Box<Expr>,
+        right: Box<Expr>,
+    },
     Unary(Token),
 }
