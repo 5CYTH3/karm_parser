@@ -1,16 +1,20 @@
-pub enum Token {
-    Operator(Operator),
-    String(String),
-    Integer(i32),
-    Comma,
-    Identifier(String),
-    EOF,
-}
-
-pub enum Operator {
+#[derive(Debug, Clone, PartialEq)]
+pub enum Kind {
+    DoubleColon,
+    Ident,
+    SemiColon,
+    Arrow,
     Plus,
-    Min,
-    Div,
     Mul,
-    Assign,
+    Div,
+    Min,
+    Eq,
+    Integer,
+    Let,
+    Fun,
+}
+#[derive(Debug, Clone)]
+pub struct Token {
+    pub kind: Kind,
+    pub value: String,
 }

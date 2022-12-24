@@ -1,24 +1,72 @@
-mod tokens;
-use tokens::Token;
+use regex::Regex;
+use std::collections::HashMap;
 
-use self::tokens::Operator;
-enum Statement {
-    Expr(Box<Statement>),
-    Block(StatementList),
-}
+use crate::lexer::tokens::Token;
 
-type StatementList = Vec<Statement>;
+use self::tokens::Kind;
+
+pub mod tokens;
 
 pub struct Lexer {
-    data: StatementList,
-    next: Statement,
+    program: String,
+    cursor: usize,
 }
 
-pub enum Expr {
-    Binary {
-        op: Operator,
-        left: Box<Expr>,
-        right: Box<Expr>,
-    },
-    Unary(Token),
+impl Lexer {
+    pub fn new() -> Self {
+        Self {
+            program: String::from(""),
+            cursor: 1,
+        }
+    }
+
+    pub fn init(&mut self, program: String) {
+        self.program = program;
+        self.cursor = 0;
+    }
+
+    pub fn has_more_token(&self) -> bool {
+        self.cursor < self.program.len()
+    }
+
+    fn match_token(&mut self, regexp: (&str, Kind), ctx: &str) {}
+
+    pub fn get_next(&mut self) -> Option<Token> {
+        if !self.has_more_token() {
+            return None;
+        }
+
+        let r_set: HashMap<&str, Option<Kind>> = HashMap::from([
+            (r"^\d+", Some(Kind::Integer)), // Integers
+            (r"^\s+", None),                // Whitespace
+            (r"^;", Some(Kind::SemiColon)),
+            (r"^\+", Some(Kind::Plus)),
+            (r"^\*", Some(Kind::Mul)),
+            (r"^\=", Some(Kind::Eq)),
+            (r"^let", Some(Kind::Let)),
+            (r"^\w+", Some(Kind::Ident)),
+        ]);
+
+        let s_str = &self.program[self.cursor..];
+
+        for r_s in r_set {
+            match Regex::new(r_s.0).unwrap().captures(s_str) {
+                Some(caps) => {
+                    let capture = caps.get(0).unwrap().as_str();
+                    self.cursor += capture.len();
+                    match r_s.1 {
+                        Some(token_type) => {
+                            return Some(Token {
+                                kind: token_type,
+                                value: capture.to_string(),
+                            });
+                        }
+                        None => return self.get_next(), // _ => panic!("Unimplemented. Error occured when resolving token type."),
+                    }
+                }
+                None => continue,
+            }
+        }
+        return None;
+    }
 }
