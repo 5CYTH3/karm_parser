@@ -40,11 +40,15 @@ impl Lexer {
             (r"^\d+", Some(Kind::Integer)), // Integers
             (r"^\s+", None),                // Whitespace
             (r"^\blet\b", Some(Kind::Let)),
+            (r"^\bfun\b", Some(Kind::Fun)),
+            (r"^::", Some(Kind::DoubleColon)),
             (r"^;", Some(Kind::SemiColon)),
             (r"^\+", Some(Kind::Plus)),
             (r"^\*", Some(Kind::Mul)),
             (r"^=", Some(Kind::Eq)),
             (r"^\w+", Some(Kind::Ident)),
+            (r"=>", Some(Kind::Arrow)),
+            (r"^,", Some(Kind::Comma)),
         ];
 
         let s_str = &self.program[self.cursor..];

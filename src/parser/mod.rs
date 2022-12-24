@@ -11,7 +11,12 @@ pub enum Expr {
         rhs: Box<Expr>,
     },
     Unary(Token),
-    Fun(Box<Expr>),
+    Fun {
+        ident: Token,
+        params: Vec<Token>,
+
+        operation: Box<Expr>,
+    },
     Var {
         ident: Token,
         value: Box<Expr>,
@@ -69,19 +74,69 @@ impl Parser {
             Kind::Let => {
                 return self.var_expr();
             }
+            Kind::Fun => {
+                return self.fun_expr();
+            }
             _ => panic!("This is bad {:?}", next_token),
         };
+    }
+
+    fn fun_expr(&mut self) -> Expr {
+        self.eat(Kind::Fun);
+
+        let id = self.eat(Kind::Ident);
+
+        self.eat(Kind::DoubleColon);
+
+        let mut params: Vec<Token> = vec![];
+        while self.next.clone().unwrap().kind != Kind::Arrow {
+            if self.next.clone().unwrap().kind == Kind::Comma {
+                self.eat(Kind::Comma);
+            } else {
+            }
+            params.push(self.eat(Kind::Ident));
+            println!("{:?}", self.next);
+        }
+        self.eat(Kind::Arrow);
+        return Expr::Fun {
+            ident: id,
+            params,
+            operation: Box::new(self.gen_expr()),
+        };
+    }
+
+    fn gen_expr(&mut self) -> Expr {
+        println!("{:?}", self.next);
+
+        let data = self.eat(Kind::Integer);
+        if self.next.clone().unwrap().is_op() {
+            let left = data;
+            println!("{:?}", self.next);
+
+            let op = self.eat(self.next.clone().unwrap().kind);
+            // PROBLEM. (Recursion). We cannot know if the RHS expr will be a Binary or Unary expr.
+            println!("{:?}", self.next);
+
+            let right = self.eat(Kind::Integer);
+            return Expr::Binary {
+                op,
+                lhs: Box::new(Expr::Unary(left)),
+                rhs: Box::new(Expr::Unary(right)),
+            };
+        }
+        self.eat(Kind::SemiColon);
+        Expr::Unary(data)
     }
 
     fn var_expr(&mut self) -> Expr {
         self.eat(Kind::Let);
         let id = self.eat(Kind::Ident);
         self.eat(Kind::Eq);
-        let val = self.eat(Kind::Integer);
-        self.eat(Kind::SemiColon);
+        let val = self.gen_expr();
+
         return Expr::Var {
             ident: id,
-            value: Box::new(Expr::Unary(val)),
+            value: Box::new(val),
         };
     }
 

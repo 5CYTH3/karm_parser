@@ -12,9 +12,19 @@ pub enum Kind {
     Integer,
     Let,
     Fun,
+    Comma,
 }
 #[derive(Debug, Clone)]
 pub struct Token {
     pub kind: Kind,
     pub value: String,
+}
+
+impl Token {
+    pub fn is_op(&self) -> bool {
+        return self.kind == Kind::Min
+            || self.kind == Kind::Plus
+            || self.kind == Kind::Div
+            || self.kind == Kind::Mul;
+    }
 }
