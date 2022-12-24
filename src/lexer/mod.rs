@@ -36,19 +36,18 @@ impl Lexer {
             return None;
         }
 
-        let r_set: HashMap<&str, Option<Kind>> = HashMap::from([
+        let r_set: Vec<(&str, Option<Kind>)> = vec![
             (r"^\d+", Some(Kind::Integer)), // Integers
             (r"^\s+", None),                // Whitespace
+            (r"^\blet\b", Some(Kind::Let)),
             (r"^;", Some(Kind::SemiColon)),
             (r"^\+", Some(Kind::Plus)),
             (r"^\*", Some(Kind::Mul)),
-            (r"^\=", Some(Kind::Eq)),
-            (r"^let", Some(Kind::Let)),
+            (r"^=", Some(Kind::Eq)),
             (r"^\w+", Some(Kind::Ident)),
-        ]);
+        ];
 
         let s_str = &self.program[self.cursor..];
-
         for r_s in r_set {
             match Regex::new(r_s.0).unwrap().captures(s_str) {
                 Some(caps) => {
