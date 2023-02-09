@@ -97,23 +97,25 @@ impl Parser {
         };
     }
 
+    // Might be preferable to just match the next token and if its operator -> return a binary_expr() function data.
     fn gen_expr(&mut self) -> Expr {
         println!("{:?}", self.next);
 
         let data = self.eat(Kind::Integer);
         if self.next.clone().unwrap().is_op() {
             let left = data;
-            println!("{:?}", self.next);
-
             let op = self.eat(self.next.clone().unwrap().kind);
-            // PROBLEM. (Recursion). We cannot know if the RHS expr will be a Binary or Unary expr.
-            println!("{:?}", self.next);
-
-            let right = self.eat(Kind::Integer);
+            /*
+             * No more problem with recursion by having "self.expr()" as RHS assignment but now, we got a problem
+             * with precedence, as the program will just wait for RHS to be self.expr() but LHS will always be integer.
+             * But that means that the first integer coming will be LHS and then it does not take accountability of
+             * the precedence of the current operator.
+             */
+            let right = self.expr();
             return Expr::Binary {
                 op,
                 lhs: Box::new(Expr::Literal(left.value)),
-                rhs: Box::new(Expr::Literal(right.value)),
+                rhs: Box::new(right),
             };
         }
         self.eat(Kind::SemiColon);
