@@ -75,16 +75,12 @@ impl Parser {
 
     fn fun_expr(&mut self) -> Expr {
         self.eat(Kind::Fn);
-
         let id = self.eat(Kind::Ident);
-
         self.eat(Kind::DoubleColon);
-
         let mut params: Vec<Token> = vec![];
         while self.next.clone().unwrap().kind != Kind::Arrow {
             if self.next.clone().unwrap().kind == Kind::Comma {
                 self.eat(Kind::Comma);
-            } else {
             }
             params.push(self.eat(Kind::Ident));
             println!("{:?}", self.next);
