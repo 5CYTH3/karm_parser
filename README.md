@@ -30,7 +30,7 @@ fn day -> 22 + 5;
 We are supposed to get returned something like this:
 
 ```rust
-Expr::fn {
+Expr::Fn {
 	id: "day"
 	expr: Expr::Binary {
 		op: Op::Plus,
