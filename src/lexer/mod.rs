@@ -39,15 +39,14 @@ impl Lexer {
         let r_set: Vec<(&str, Option<Kind>)> = vec![
             (r"^\d+", Some(Kind::Integer)), // Integers
             (r"^\s+", None),                // Whitespace
-            (r"^\blet\b", Some(Kind::Let)),
-            (r"^\bfun\b", Some(Kind::Fn)),
+            (r"^\bfn\b", Some(Kind::Fn)),
             (r"^::", Some(Kind::DoubleColon)),
             (r"^;", Some(Kind::SemiColon)),
             (r"^\+", Some(Kind::Plus)),
             (r"^\*", Some(Kind::Mul)),
             (r"^=", Some(Kind::Eq)),
             (r"^\w+", Some(Kind::Ident)),
-            (r"=>", Some(Kind::Arrow)),
+            (r"->", Some(Kind::Arrow)),
             (r"^,", Some(Kind::Comma)),
         ];
 
