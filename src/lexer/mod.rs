@@ -40,7 +40,7 @@ impl Lexer {
             (r"^\d+", Some(Kind::Integer)), // Integers
             (r"^\s+", None),                // Whitespace
             (r"^\blet\b", Some(Kind::Let)),
-            (r"^\bfun\b", Some(Kind::Fun)),
+            (r"^\bfun\b", Some(Kind::Fn)),
             (r"^::", Some(Kind::DoubleColon)),
             (r"^;", Some(Kind::SemiColon)),
             (r"^\+", Some(Kind::Plus)),

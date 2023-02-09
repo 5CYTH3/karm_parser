@@ -10,20 +10,15 @@ pub enum Expr {
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     },
-    Unary(Token),
-    Fun {
-        ident: Token,
-        params: Vec<Token>,
-
+    Literal(String),
+    Fn {
+        ident: String,
+        params: Option<Vec<Token>>,
         operation: Box<Expr>,
-    },
-    Var {
-        ident: Token,
-        value: Box<Expr>,
     },
 }
 
-type ExprList = Vec<Expr>;
+type Program = Vec<Expr>;
 
 pub struct Parser {
     program: String,
@@ -43,14 +38,14 @@ impl Parser {
         }
     }
 
-    pub fn init(&mut self, program: String) -> ExprList {
+    pub fn init(&mut self, program: String) -> Program {
         self.program = program.clone();
         self.lexer.init(program);
         self.next = self.lexer.get_next();
         return self.program();
     }
 
-    fn program(&mut self) -> ExprList {
+    fn program(&mut self) -> Program {
         if self.next.is_none() {
             println!("Program Terminated : Lookahead is empty, nothing to parse.");
             exit(1)
@@ -58,8 +53,8 @@ impl Parser {
         return self.parse();
     }
 
-    pub fn parse(&mut self) -> ExprList {
-        let mut program: ExprList = vec![];
+    pub fn parse(&mut self) -> Program {
+        let mut program: Program = vec![];
 
         while !self.next.is_none() {
             let exp = self.expr();
@@ -71,18 +66,15 @@ impl Parser {
     fn expr(&mut self) -> Expr {
         let next_token = self.next.clone().unwrap();
         match next_token.kind {
-            Kind::Let => {
-                return self.var_expr();
-            }
-            Kind::Fun => {
+            Kind::Fn => {
                 return self.fun_expr();
             }
-            _ => panic!("This is bad {:?}", next_token),
+            _ => return self.gen_expr(),
         };
     }
 
     fn fun_expr(&mut self) -> Expr {
-        self.eat(Kind::Fun);
+        self.eat(Kind::Fn);
 
         let id = self.eat(Kind::Ident);
 
@@ -98,9 +90,9 @@ impl Parser {
             println!("{:?}", self.next);
         }
         self.eat(Kind::Arrow);
-        return Expr::Fun {
-            ident: id,
-            params,
+        return Expr::Fn {
+            ident: id.value,
+            params: Some(params),
             operation: Box::new(self.gen_expr()),
         };
     }
@@ -120,24 +112,12 @@ impl Parser {
             let right = self.eat(Kind::Integer);
             return Expr::Binary {
                 op,
-                lhs: Box::new(Expr::Unary(left)),
-                rhs: Box::new(Expr::Unary(right)),
+                lhs: Box::new(Expr::Literal(left.value)),
+                rhs: Box::new(Expr::Literal(right.value)),
             };
         }
         self.eat(Kind::SemiColon);
-        Expr::Unary(data)
-    }
-
-    fn var_expr(&mut self) -> Expr {
-        self.eat(Kind::Let);
-        let id = self.eat(Kind::Ident);
-        self.eat(Kind::Eq);
-        let val = self.gen_expr();
-
-        return Expr::Var {
-            ident: id,
-            value: Box::new(val),
-        };
+        Expr::Literal(data.value)
     }
 
     fn eat(&mut self, kind_target: Kind) -> Token {

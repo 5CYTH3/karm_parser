@@ -11,7 +11,7 @@ pub enum Kind {
     Eq,
     Integer,
     Let,
-    Fun,
+    Fn,
     Comma,
 }
 #[derive(Debug, Clone)]
