@@ -73,30 +73,41 @@ impl Parser {
         };
     }
 
+    // ! With the fact that we assigned self.expr() to the operations field induce the fact that
+    // ! we can nest function definition. Is that useful ? Idk.
     fn fun_expr(&mut self) -> Expr {
         self.eat(Kind::Fn);
         let id = self.eat(Kind::Ident);
-        self.eat(Kind::DoubleColon);
-        let mut params: Vec<Token> = vec![];
-        while self.next.clone().unwrap().kind != Kind::Arrow {
-            if self.next.clone().unwrap().kind == Kind::Comma {
-                self.eat(Kind::Comma);
+
+        // Check if the function has parameters (if it has the :: operator, it has parameters).
+        if self.next.clone().unwrap().kind == Kind::DoubleColon {
+            let mut params: Vec<Token> = vec![];
+            self.eat(Kind::DoubleColon);
+            while self.next.clone().unwrap().kind != Kind::Arrow {
+                params.push(self.eat(Kind::Ident));
+                if self.next.clone().unwrap().kind == Kind::Comma {
+                    self.eat(Kind::Comma);
+                }
             }
-            params.push(self.eat(Kind::Ident));
-            println!("{:?}", self.next);
+            self.eat(Kind::Arrow);
+            return Expr::Fn {
+                ident: id.value,
+                params: Some(params),
+                operation: Box::new(self.expr()),
+            };
         }
+
+        // If the function has no parameters, return a Expr::Fn with `None` as params value.
         self.eat(Kind::Arrow);
         return Expr::Fn {
             ident: id.value,
-            params: Some(params),
-            operation: Box::new(self.gen_expr()),
+            params: None,
+            operation: Box::new(self.expr()),
         };
     }
 
     // Might be preferable to just match the next token and if its operator -> return a binary_expr() function data.
     fn gen_expr(&mut self) -> Expr {
-        println!("{:?}", self.next);
-
         let data = self.eat(Kind::Integer);
         if self.next.clone().unwrap().is_op() {
             let left = data;

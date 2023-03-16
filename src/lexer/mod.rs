@@ -45,9 +45,9 @@ impl Lexer {
             (r"^\+", Some(Kind::Plus)),
             (r"^\*", Some(Kind::Mul)),
             (r"^=", Some(Kind::Eq)),
-            (r"^\w+", Some(Kind::Ident)),
-            (r"->", Some(Kind::Arrow)),
+            (r"^->", Some(Kind::Arrow)),
             (r"^,", Some(Kind::Comma)),
+            (r"^\w+", Some(Kind::Ident)),
         ];
 
         let s_str = &self.program[self.cursor..];

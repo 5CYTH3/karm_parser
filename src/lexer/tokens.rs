@@ -10,7 +10,6 @@ pub enum Kind {
     Min,
     Eq,
     Integer,
-    Let,
     Fn,
     Comma,
 }
