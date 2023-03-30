@@ -15,14 +15,17 @@ Talking about syntax, here is the BNF of the language:
 <literal> ::= '+w/' | '+d/'
 ``` 
 ### Kind of a notepad
-Just a reminder about the syntax I wanna give
 
+With this grammar we can deduce all these behaviour :
+
+#### HelloWorld
 ```rust
-fn addFive :: x -> x + 5;
-fn sayHello -> puts "Hello";
+fn main -> puts "Hello, World";
 ```
-tokens: Ident, "fn", ::, ->, +, -, /, *, ;.
-
+####
+```rust
+```
+### Example
 With this example :
 ```rust
 fn day -> 22 + 5;
@@ -38,4 +41,9 @@ Expr::Fn {
 		right: Expr::Literal("5")
 	}
 }
+```
+## Ideas
+Just a bunch of ideas I got that I will implement later
+```rust
+fn fib :: n -> if n <= 1 ? n : (fib n - 1) + (fib n - 2);
 ```
