@@ -1,5 +1,4 @@
 use regex::Regex;
-use std::collections::HashMap;
 
 use crate::lexer::tokens::Token;
 
@@ -43,13 +42,14 @@ impl Lexer {
             (r"^::", Some(Kind::DoubleColon)),
             (r"^;", Some(Kind::SemiColon)),
             (r"^\+", Some(Kind::Plus)),
+            (r"^\-", Some(Kind::Min)),
             (r"^\*", Some(Kind::Mul)),
             (r"^=", Some(Kind::Eq)),
             (r"^->", Some(Kind::Arrow)),
             (r"^,", Some(Kind::Comma)),
             (r"^\w+", Some(Kind::Ident)),
         ];
-
+        // Add a way to detect if the token is in the r_set.
         let s_str = &self.program[self.cursor..];
         for r_s in r_set {
             match Regex::new(r_s.0).unwrap().captures(s_str) {

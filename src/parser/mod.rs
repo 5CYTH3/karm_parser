@@ -1,5 +1,7 @@
+use core::panic;
 use std::process::exit;
 
+use crate::errors::SyntaxError;
 use crate::lexer::tokens::{Kind, Token};
 use crate::lexer::Lexer;
 
@@ -64,17 +66,43 @@ impl Parser {
     }
 
     fn expr(&mut self) -> Expr {
-        let next_token = self.next.clone().unwrap();
+        let next_token = match self.next.clone() {
+            Some(token) => token,
+            None => panic!("No lookahead."),
+        };
         match next_token.kind {
-            Kind::Fn => {
-                return self.fun_expr();
-            }
-            _ => return self.gen_expr(),
+            Kind::Fn => return self.fun_expr(),
+            Kind::Integer => return self.numeric_expr(),
+            _ => panic!(""),
         };
     }
 
-    // ! With the fact that we assigned self.expr() to the operations field induce the fact that
-    // ! we can nest function definition. Is that useful ? Idk.
+    fn numeric_expr(&mut self) -> Expr {
+        let data = self.eat(Kind::Integer);
+        if self.next.clone().unwrap().is_op() {
+            return self.binary_expr(data);
+        }
+        self.eat(Kind::SemiColon);
+        Expr::Literal(data.value)
+    }
+
+    // PB: 5 * 8 + 9 should be evaluated as (5 * 8) + 9 but is evaluated as 5 * (8 + 9)
+    fn binary_expr(&mut self, left: Token) -> Expr {
+        let op = self.eat(self.next.clone().unwrap().kind);
+        /*
+         * The program will just wait for RHS to be self.expr() but LHS will always be integer.
+         * But that means that the first integer coming will be LHS and then it does not take accountability of
+         * the precedence of the current operator.
+         */
+        let right = self.expr();
+        return Expr::Binary {
+            op,
+            lhs: Box::new(Expr::Literal(left.value)),
+            rhs: Box::new(right),
+        };
+    }
+
+    // ? Weird behaviour : Function Definitions can be nested.
     fn fun_expr(&mut self) -> Expr {
         self.eat(Kind::Fn);
         let id = self.eat(Kind::Ident);
@@ -106,52 +134,21 @@ impl Parser {
         };
     }
 
-    // Might be preferable to just match the next token and if its operator -> return a binary_expr() function data.
-    fn gen_expr(&mut self) -> Expr {
-        let data = self.eat(Kind::Integer);
-        if self.next.clone().unwrap().is_op() {
-            let left = data;
-            let op = self.eat(self.next.clone().unwrap().kind);
-            /*
-             * No more problem with recursion by having "self.expr()" as RHS assignment but now, we got a problem
-             * with precedence, as the program will just wait for RHS to be self.expr() but LHS will always be integer.
-             * But that means that the first integer coming will be LHS and then it does not take accountability of
-             * the precedence of the current operator.
-             */
-            let right = self.expr();
-            return Expr::Binary {
-                op,
-                lhs: Box::new(Expr::Literal(left.value)),
-                rhs: Box::new(right),
-            };
-        }
-        self.eat(Kind::SemiColon);
-        Expr::Literal(data.value)
-    }
-
     fn eat(&mut self, kind_target: Kind) -> Token {
         let t: Token = match &self.next {
             Some(val) => val.to_owned(),
-            None => panic!(
-                "SyntaxError!    -> Expected: {:?} and got: None",
-                kind_target
-            ),
+            None => panic!("{}", SyntaxError(kind_target, None)),
         };
 
-        let kind: Kind = match t.clone() {
-            Token { value: _, kind } => kind,
-        };
+        let kind: Kind = t.clone().kind;
 
         if kind != kind_target {
-            panic!(
-                "UnexpectedToken!    -> Expected: {:?} and got: {:?}",
-                kind, kind_target
-            )
+            panic!("{}", SyntaxError(kind_target, Some(kind)));
         }
 
         let new_lookahead = self.lexer.get_next();
         self.next = new_lookahead;
 
-        return t;
+        t
     }
 }
