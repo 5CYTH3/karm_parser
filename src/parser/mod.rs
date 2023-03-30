@@ -59,10 +59,16 @@ impl Parser {
         let mut program: Program = vec![];
 
         while !self.next.is_none() {
-            let exp = self.expr();
+            let exp = self.expr_def();
             program.push(exp.clone());
         }
         return program;
+    }
+
+    fn expr_def(&mut self) -> Expr {
+        let expr = self.expr();
+        self.eat(Kind::SemiColon);
+        expr
     }
 
     fn expr(&mut self) -> Expr {
@@ -70,39 +76,50 @@ impl Parser {
             Some(token) => token,
             None => panic!("No lookahead."),
         };
-        match next_token.kind {
-            Kind::Fn => return self.fun_expr(),
-            Kind::Integer => return self.numeric_expr(),
-            _ => panic!(""),
+        let expr = match next_token.kind {
+            Kind::Fn => self.fun_expr(),
+            Kind::Integer => self.low_prec_expr(),
+            _ => panic!("Invalid expr type."),
         };
+        expr
     }
 
-    fn numeric_expr(&mut self) -> Expr {
-        let data = self.eat(Kind::Integer);
-        if self.next.clone().unwrap().is_op() {
-            return self.binary_expr(data);
+    fn literal(&mut self) -> Expr {
+        return Expr::Literal(self.eat(Kind::Integer).value);
+    }
+
+    // Operation such as +, -
+    fn low_prec_expr(&mut self) -> Expr {
+        let mut left = self.high_prec_expr();
+
+        while self.next.clone().unwrap().get_prec() == 1 {
+            let op = self.eat(self.next.clone().unwrap().kind);
+            let right = self.high_prec_expr();
+            left = Expr::Binary {
+                op,
+                lhs: Box::new(left),
+                rhs: Box::new(right),
+            };
         }
-        self.eat(Kind::SemiColon);
-        Expr::Literal(data.value)
+        left
     }
 
-    // PB: 5 * 8 + 9 should be evaluated as (5 * 8) + 9 but is evaluated as 5 * (8 + 9)
-    fn binary_expr(&mut self, left: Token) -> Expr {
-        let op = self.eat(self.next.clone().unwrap().kind);
-        /*
-         * The program will just wait for RHS to be self.expr() but LHS will always be integer.
-         * But that means that the first integer coming will be LHS and then it does not take accountability of
-         * the precedence of the current operator.
-         */
-        let right = self.expr();
-        return Expr::Binary {
-            op,
-            lhs: Box::new(Expr::Literal(left.value)),
-            rhs: Box::new(right),
-        };
+    // Operation such as *, /
+    fn high_prec_expr(&mut self) -> Expr {
+        let mut left: Expr = self.literal();
+        while self.next.clone().unwrap().get_prec() == 2 {
+            let op = self.eat(self.next.clone().unwrap().kind);
+            let right = self.literal();
+            left = Expr::Binary {
+                op,
+                lhs: Box::new(left),
+                rhs: Box::new(right),
+            };
+        }
+        left
     }
 
-    // ? Weird behaviour : Function Definitions can be nested.
+    // ? Weird behaviour : Function Definitions can be nested (caused by the use of self.expr() without restriction).
     fn fun_expr(&mut self) -> Expr {
         self.eat(Kind::Fn);
         let id = self.eat(Kind::Ident);

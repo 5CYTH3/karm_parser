@@ -3,10 +3,10 @@ pub enum Kind {
     DoubleColon,
     Ident,
     SemiColon,
-    Arrow,
-    Plus,
     Mul,
     Div,
+    Arrow,
+    Plus,
     Min,
     Eq,
     Integer,
@@ -25,5 +25,13 @@ impl Token {
             || self.kind == Kind::Plus
             || self.kind == Kind::Div
             || self.kind == Kind::Mul;
+    }
+
+    pub fn get_prec(&self) -> i32 {
+        match self.kind {
+            Kind::Mul | Kind::Div => return 2,
+            Kind::Plus | Kind::Min => return 1,
+            _ => return 0,
+        }
     }
 }

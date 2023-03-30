@@ -28,7 +28,7 @@ impl Lexer {
         self.cursor < self.program.len()
     }
 
-    fn match_token(&mut self, regexp: (&str, Kind), ctx: &str) {}
+    fn _match_token(&mut self, _regexp: (&str, Kind), _ctx: &str) {}
 
     pub fn get_next(&mut self) -> Option<Token> {
         if !self.has_more_token() {
@@ -41,11 +41,12 @@ impl Lexer {
             (r"^\bfn\b", Some(Kind::Fn)),
             (r"^::", Some(Kind::DoubleColon)),
             (r"^;", Some(Kind::SemiColon)),
+            (r"^->", Some(Kind::Arrow)),
+            (r"^\*", Some(Kind::Mul)),
+            (r"^/", Some(Kind::Div)),
             (r"^\+", Some(Kind::Plus)),
             (r"^\-", Some(Kind::Min)),
-            (r"^\*", Some(Kind::Mul)),
             (r"^=", Some(Kind::Eq)),
-            (r"^->", Some(Kind::Arrow)),
             (r"^,", Some(Kind::Comma)),
             (r"^\w+", Some(Kind::Ident)),
         ];
