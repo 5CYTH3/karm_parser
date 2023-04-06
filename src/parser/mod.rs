@@ -13,6 +13,10 @@ pub enum Expr {
         rhs: Box<Expr>,
     },
     Literal(String),
+    FnCall {
+        ident: String,
+        params: Option<Vec<(Kind, String)>>
+    },
     Fn {
         ident: String,
         params: Option<Vec<Token>>,
@@ -79,6 +83,7 @@ impl Parser {
         let expr = match next_token.kind {
             Kind::Fn => self.fun_expr(),
             Kind::Integer => self.low_prec_expr(),
+            Kind::Ident => self.function_call(),
             _ => panic!("Invalid expr type."),
         };
         expr
@@ -86,6 +91,11 @@ impl Parser {
 
     fn literal(&mut self) -> Expr {
         return Expr::Literal(self.eat(Kind::Integer).value);
+    }
+
+    fn function_call(&mut self) -> Expr {
+        let id = self.eat(Kind::Ident);
+        Expr::FnCall { ident: id.value, params: None }
     }
 
     // Operation such as +, -
