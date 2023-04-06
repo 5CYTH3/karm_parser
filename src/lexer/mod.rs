@@ -64,7 +64,7 @@ impl Lexer {
                                 value: capture.to_string(),
                             });
                         }
-                        None => return self.get_next(), // _ => panic!("Unimplemented. Error occured when resolving token type."),
+                        None => return self.get_next(), 
                     }
                 }
                 None => continue,

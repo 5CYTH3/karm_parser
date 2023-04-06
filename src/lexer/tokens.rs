@@ -12,6 +12,12 @@ pub enum Kind {
     Integer,
     Fn,
     Comma,
+    LParen, // TODO
+    RParen, // TODO
+    Leq, // TODO
+    Geq, // TODO
+    DoubleEq, // TODO
+    Neq, // TODO
 }
 #[derive(Debug, Clone)]
 pub struct Token {
