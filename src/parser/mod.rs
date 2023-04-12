@@ -15,11 +15,11 @@ pub enum Expr {
     Literal(String),
     FnCall {
         ident: String,
-        params: Option<Vec<(Kind, String)>>
+        params: Option<Box<Expr>>,
     },
     Fn {
         ident: String,
-        params: Option<Vec<Token>>,
+        params: Option<Vec<String>>,
         operation: Box<Expr>,
     },
 }
@@ -33,30 +33,22 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn new() -> Self {
+    pub fn new(program: String) -> Self {
+        let mut lexer = Lexer::new();
+        lexer.init(program.clone());
         Self {
-            program: String::from(""),
-            next: Some(Token {
-                kind: Kind::Integer,
-                value: String::from("0"),
-            }),
-            lexer: Lexer::new(),
+            program,
+            next: lexer.get_next(),
+            lexer,
         }
     }
 
-    pub fn init(&mut self, program: String) -> Program {
-        self.program = program.clone();
-        self.lexer.init(program);
-        self.next = self.lexer.get_next();
-        return self.program();
-    }
-
-    fn program(&mut self) -> Program {
+    pub fn program(&mut self) -> Program {
         if self.next.is_none() {
             println!("Program Terminated : Lookahead is empty, nothing to parse.");
             exit(1)
         }
-        return self.parse();
+        self.parse()
     }
 
     pub fn parse(&mut self) -> Program {
@@ -66,7 +58,7 @@ impl Parser {
             let exp = self.expr_def();
             program.push(exp.clone());
         }
-        return program;
+        program
     }
 
     fn expr_def(&mut self) -> Expr {
@@ -90,18 +82,21 @@ impl Parser {
     }
 
     fn literal(&mut self) -> Expr {
-        return Expr::Literal(self.eat(Kind::Integer).value);
+        // ? Not sure if checking the type of the literal is needed here as we are in an arithmetic expression.
+        Expr::Literal(self.eat(Kind::Integer).value)
     }
 
     fn function_call(&mut self) -> Expr {
         let id = self.eat(Kind::Ident);
-        Expr::FnCall { ident: id.value, params: None }
+        Expr::FnCall {
+            ident: id.value,
+            params: None,
+        }
     }
 
     // Operation such as +, -
     fn low_prec_expr(&mut self) -> Expr {
         let mut left = self.high_prec_expr();
-
         while self.next.clone().unwrap().get_prec() == 1 {
             let op = self.eat(self.next.clone().unwrap().kind);
             let right = self.high_prec_expr();
@@ -136,10 +131,10 @@ impl Parser {
 
         // Check if the function has parameters (if it has the :: operator, it has parameters).
         if self.next.clone().unwrap().kind == Kind::DoubleColon {
-            let mut params: Vec<Token> = vec![];
+            let mut params: Vec<String> = vec![];
             self.eat(Kind::DoubleColon);
             while self.next.clone().unwrap().kind != Kind::Arrow {
-                params.push(self.eat(Kind::Ident));
+                params.push(self.eat(Kind::Ident).value);
                 if self.next.clone().unwrap().kind == Kind::Comma {
                     self.eat(Kind::Comma);
                 }
@@ -154,11 +149,11 @@ impl Parser {
 
         // If the function has no parameters, return a Expr::Fn with `None` as params value.
         self.eat(Kind::Arrow);
-        return Expr::Fn {
+        Expr::Fn {
             ident: id.value,
             params: None,
             operation: Box::new(self.expr()),
-        };
+        }
     }
 
     fn eat(&mut self, kind_target: Kind) -> Token {

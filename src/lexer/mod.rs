@@ -6,6 +6,7 @@ use self::tokens::Kind;
 
 pub mod tokens;
 
+#[derive(Clone)]
 pub struct Lexer {
     program: String,
     cursor: usize,
@@ -64,7 +65,7 @@ impl Lexer {
                                 value: capture.to_string(),
                             });
                         }
-                        None => return self.get_next(), 
+                        None => return self.get_next(),
                     }
                 }
                 None => continue,
