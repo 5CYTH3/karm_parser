@@ -22,9 +22,7 @@ With this grammar we can deduce all these behaviour :
 ```rust
 fn main -> puts "Hello, World";
 ```
-####
-```rust
-```
+
 ### Example
 With this example :
 ```rust
