@@ -12,7 +12,7 @@ pub enum Expr {
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     },
-    Literal(String),
+    Literal(Literal),
     FnCall {
         ident: String,
         params: Option<Box<Expr>>,
@@ -22,6 +22,12 @@ pub enum Expr {
         params: Option<Vec<String>>,
         operation: Box<Expr>,
     },
+}
+
+#[derive(Debug, Clone)]
+pub enum Literal {
+    Str(String),
+    Int(i32),
 }
 
 type Program = Vec<Expr>;
@@ -82,8 +88,11 @@ impl Parser {
     }
 
     fn literal(&mut self) -> Expr {
-        // ? Not sure if checking the type of the literal is needed here as we are in an arithmetic expression.
-        Expr::Literal(self.eat(Kind::Integer).value)
+        match self.next.clone().unwrap().kind {
+            Kind::Integer => Expr::Literal(Literal::Int(self.eat(Kind::Integer).value.to_string().parse::<i32>().unwrap())),
+            Kind::Ident => Expr::FnCall { ident: self.eat(self.next.clone().unwrap().kind).value, params: Some(Box::new(self.expr())) }, // Instead of self.expr() we need to bring back self.arithmetic_expr()
+            _ => panic!("")
+        }
     }
 
     fn function_call(&mut self) -> Expr {
