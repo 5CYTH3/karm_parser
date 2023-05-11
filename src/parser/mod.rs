@@ -33,17 +33,14 @@ pub enum Literal {
 type Program = Vec<Expr>;
 
 pub struct Parser {
-    program: String,
     next: Option<Token>,
     lexer: Lexer,
 }
 
 impl Parser {
     pub fn new(program: String) -> Self {
-        let mut lexer = Lexer::new();
-        lexer.init(program.clone());
+        let mut lexer = Lexer::new(program);
         Self {
-            program,
             next: lexer.get_next(),
             lexer,
         }
@@ -89,9 +86,18 @@ impl Parser {
 
     fn literal(&mut self) -> Expr {
         match self.next.clone().unwrap().kind {
-            Kind::Integer => Expr::Literal(Literal::Int(self.eat(Kind::Integer).value.to_string().parse::<i32>().unwrap())),
-            Kind::Ident => Expr::FnCall { ident: self.eat(self.next.clone().unwrap().kind).value, params: Some(Box::new(self.expr())) }, // Instead of self.expr() we need to bring back self.arithmetic_expr()
-            _ => panic!("")
+            Kind::Integer => Expr::Literal(Literal::Int(
+                self.eat(Kind::Integer)
+                    .value
+                    .to_string()
+                    .parse::<i32>()
+                    .unwrap(),
+            )),
+            Kind::Ident => Expr::FnCall {
+                ident: self.eat(self.next.clone().unwrap().kind).value,
+                params: Some(Box::new(self.expr())),
+            }, // Instead of self.expr() we need to bring back self.arithmetic_expr()
+            _ => panic!(""),
         }
     }
 

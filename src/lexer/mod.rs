@@ -13,16 +13,11 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    pub fn new() -> Self {
+    pub fn new(program: String) -> Self {
         Self {
-            program: String::from(""),
-            cursor: 1,
+            program: program,
+            cursor: 0,
         }
-    }
-
-    pub fn init(&mut self, program: String) {
-        self.program = program;
-        self.cursor = 0;
     }
 
     pub fn has_more_token(&self) -> bool {
