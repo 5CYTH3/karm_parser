@@ -4,9 +4,11 @@ In my journey of understanding how compilers works, there is KARM. It's only a p
 
 Talking about syntax, here is the BNF of the language:
 ```html
-<expr> ::= (<fn> | <literal> | <binary>) ';'
+<expr> ::= (<fn> | <literal> | <binary> | <if>) ';'
 
 <fn> ::= 'fn' <id> ['::' <id>] '->' <expr>
+
+<if> ::= 'if' <expr> '?' <expr> [':' <expr>]
 
 <binary> ::= (<literal> | <binary>) <op> (<literal> | <binary>)
 

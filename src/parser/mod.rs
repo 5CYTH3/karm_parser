@@ -159,27 +159,27 @@ impl Parser {
         // If the function has no parameters, return a Expr::Fn with `None` as params value.
         self.eat(Kind::Arrow);
         Expr::Fn {
-            ident: id.value,
+            ident: id.value.,
             params: None,
             operation: Box::new(self.expr()),
         }
     }
 
-    fn eat(&mut self, kind_target: Kind) -> Token {
+    fn eat(&mut self, kind_target: Kind) -> Result<Token, SyntaxError> {
         let t: Token = match &self.next {
             Some(val) => val.to_owned(),
-            None => panic!("{}", SyntaxError(kind_target, None)),
+            None => return Err(SyntaxError(kind_target, None)),
         };
 
         let kind: Kind = t.clone().kind;
 
         if kind != kind_target {
-            panic!("{}", SyntaxError(kind_target, Some(kind)));
+            return Err(SyntaxError(kind_target, Some(kind)));
         }
 
         let new_lookahead = self.lexer.get_next();
         self.next = new_lookahead;
 
-        t
+        Ok(t)
     }
 }
