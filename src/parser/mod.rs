@@ -30,6 +30,7 @@ pub enum Literal {
     Int(i32),
 }
 
+
 type Program = Vec<Expr>;
 
 pub struct Parser {
@@ -59,18 +60,24 @@ impl Parser {
 
         while !self.next.is_none() {
             let exp = self.expr_def();
-            program.push(exp.clone());
+            program.push(match exp {
+                Ok(val) => val,
+                Err(e) => panic!("{}", e)
+            });
         }
         program
     }
 
-    fn expr_def(&mut self) -> Expr {
+    fn expr_def(&mut self) -> Result<Expr, SyntaxError> {
         let expr = self.expr();
-        self.eat(Kind::SemiColon);
+        match self.eat(Kind::SemiColon) {
+            Ok(val) => (),
+            Err(e) => return Err(e)
+        };
         expr
     }
 
-    fn expr(&mut self) -> Expr {
+    fn expr(&mut self) -> Result<Expr, SyntaxError> {
         let next_token = match self.next.clone() {
             Some(token) => token,
             None => panic!("No lookahead."),
@@ -84,91 +91,130 @@ impl Parser {
         expr
     }
 
-    fn literal(&mut self) -> Expr {
-        match self.next.clone().unwrap().kind {
+    fn literal(&mut self) -> Result<Expr, SyntaxError> {
+        let literal = match self.next.clone().unwrap().kind {
             Kind::Integer => Expr::Literal(Literal::Int(
-                self.eat(Kind::Integer)
-                    .value
-                    .to_string()
-                    .parse::<i32>()
-                    .unwrap(),
+                match self.eat(Kind::Integer) {
+                    Ok(val) => val.value.to_string().parse::<i32>().unwrap(),
+                    Err(e) => return Err(e)
+                }
             )),
             Kind::Ident => Expr::FnCall {
-                ident: self.eat(self.next.clone().unwrap().kind).value,
-                params: Some(Box::new(self.expr())),
+                ident: match self.eat(Kind::Ident) {
+                    Ok(val) => val.value,
+                    Err(e) => return Err(e)
+                },
+                params: Some(Box::new(match self.expr() {
+                    Ok(val) => val,
+                    Err(e) => return Err(e)
+                })),
             }, // Instead of self.expr() we need to bring back self.arithmetic_expr()
             _ => panic!(""),
-        }
+        };
+        Ok(literal)
     }
 
-    fn function_call(&mut self) -> Expr {
-        let id = self.eat(Kind::Ident);
-        Expr::FnCall {
+    fn function_call(&mut self) -> Result<Expr, SyntaxError> {
+        let  id = match self.eat(Kind::Ident) {
+            Ok(val) => val,
+            Err(e) => return Err(e)
+        };
+        Ok(Expr::FnCall {
             ident: id.value,
             params: None,
-        }
+        })
     }
 
     // Operation such as +, -
-    fn low_prec_expr(&mut self) -> Expr {
-        let mut left = self.high_prec_expr();
+    fn low_prec_expr(&mut self) -> Result<Expr, SyntaxError> {
+        let mut left = match self.high_prec_expr() {
+            Ok(val) => val,
+            Err(e) => return Err(e)
+        };
         while self.next.clone().unwrap().get_prec() == 1 {
-            let op = self.eat(self.next.clone().unwrap().kind);
-            let right = self.high_prec_expr();
+            let op = match self.eat(self.next.clone().unwrap().kind) {
+                Ok(val) => val,
+                Err(e) => return Err(e)
+            };
+            let right = match self.high_prec_expr() {
+                Ok(val) => val,
+                Err(e) => return Err(e)
+            };
             left = Expr::Binary {
                 op,
                 lhs: Box::new(left),
                 rhs: Box::new(right),
             };
         }
-        left
+        Ok(left)
     }
 
     // Operation such as *, /
-    fn high_prec_expr(&mut self) -> Expr {
-        let mut left: Expr = self.literal();
+    fn high_prec_expr(&mut self) -> Result<Expr, SyntaxError> {
+        let mut left = match self.literal() {
+            Ok(val) => val,
+            Err(e) => return Err(e)
+        };
         while self.next.clone().unwrap().get_prec() == 2 {
-            let op = self.eat(self.next.clone().unwrap().kind);
-            let right = self.literal();
+            let op = match self.eat(self.next.clone().unwrap().kind) {
+                Ok(val) => val,
+                Err(e) => return Err(e)
+            };
+            let right = match self.literal() {
+                Ok(val) => val,
+                Err(e) => return Err(e)
+            };
             left = Expr::Binary {
                 op,
                 lhs: Box::new(left),
                 rhs: Box::new(right),
             };
         }
-        left
+        Ok(left)
     }
 
     // ? Weird behaviour : Function Definitions can be nested (caused by the use of self.expr() without restriction).
-    fn fun_expr(&mut self) -> Expr {
+    fn fun_expr(&mut self) -> Result<Expr, SyntaxError> {
         self.eat(Kind::Fn);
-        let id = self.eat(Kind::Ident);
+        let id = match self.eat(Kind::Ident) {
+            Ok(value) => value.value,
+            Err(e) => return Err(e)
+        };
 
         // Check if the function has parameters (if it has the :: operator, it has parameters).
         if self.next.clone().unwrap().kind == Kind::DoubleColon {
             let mut params: Vec<String> = vec![];
             self.eat(Kind::DoubleColon);
             while self.next.clone().unwrap().kind != Kind::Arrow {
-                params.push(self.eat(Kind::Ident).value);
+                params.push(match self.eat(Kind::Ident) {
+                    Ok(val) => val.value,
+                    Err(e) => return Err(e)
+                });
                 if self.next.clone().unwrap().kind == Kind::Comma {
                     self.eat(Kind::Comma);
                 }
             }
             self.eat(Kind::Arrow);
-            return Expr::Fn {
-                ident: id.value,
+            return Ok(Expr::Fn {
+                ident: id,
                 params: Some(params),
-                operation: Box::new(self.expr()),
-            };
+                operation: Box::new(match self.expr() {
+                    Ok(val) => val,
+                    Err(e) => return Err(e)
+                }),
+            });
         }
 
         // If the function has no parameters, return a Expr::Fn with `None` as params value.
         self.eat(Kind::Arrow);
-        Expr::Fn {
-            ident: id.value.,
+        Ok(Expr::Fn {
+            ident: id,
             params: None,
-            operation: Box::new(self.expr()),
-        }
+            operation: Box::new(match self.expr() {
+                Ok(val) => val,
+                Err(e) => return Err(e)
+            }),
+        })
     }
 
     fn eat(&mut self, kind_target: Kind) -> Result<Token, SyntaxError> {

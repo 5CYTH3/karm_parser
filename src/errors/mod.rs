@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::lexer::tokens::Kind;
-
+#[derive(Debug)]
 pub struct SyntaxError(pub Kind, pub Option<Kind>);
 
 impl Display for SyntaxError {
