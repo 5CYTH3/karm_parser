@@ -44,6 +44,7 @@ impl Lexer {
             (r"^\-", Some(Kind::Min)),
             (r"^=", Some(Kind::Eq)),
             (r"^,", Some(Kind::Comma)),
+            (r"^.", Some(Kind::Dot)),
             (r"^\w+", Some(Kind::Ident)),
         ];
         // Add a way to detect if the token is in the r_set.

@@ -30,7 +30,6 @@ pub enum Literal {
     Int(i32),
 }
 
-
 type Program = Vec<Expr>;
 
 pub struct Parser {
@@ -62,7 +61,7 @@ impl Parser {
             let exp = self.expr_def();
             program.push(match exp {
                 Ok(val) => val,
-                Err(e) => panic!("{}", e)
+                Err(e) => panic!("{}", e),
             });
         }
         program
@@ -72,7 +71,7 @@ impl Parser {
         let expr = self.expr();
         match self.eat(Kind::SemiColon) {
             Ok(val) => (),
-            Err(e) => return Err(e)
+            Err(e) => return Err(e),
         };
         expr
     }
@@ -80,45 +79,47 @@ impl Parser {
     fn expr(&mut self) -> Result<Expr, SyntaxError> {
         let next_token = match self.next.clone() {
             Some(token) => token,
-            None => panic!("No lookahead."),
+            None => return Err(SyntaxError(vec![self.next.clone().unwrap().kind], None)),
         };
         let expr = match next_token.kind {
             Kind::Fn => self.fun_expr(),
             Kind::Integer => self.low_prec_expr(),
             Kind::Ident => self.function_call(),
-            _ => panic!("Invalid expr type."),
+            _ => {
+                return Err(SyntaxError(
+                    vec![Kind::Fn, Kind::Integer, Kind::Ident],
+                    Some(next_token.kind),
+                ))
+            }
         };
         expr
     }
 
     fn literal(&mut self) -> Result<Expr, SyntaxError> {
         let literal = match self.next.clone().unwrap().kind {
-            Kind::Integer => Expr::Literal(Literal::Int(
-                match self.eat(Kind::Integer) {
-                    Ok(val) => val.value.to_string().parse::<i32>().unwrap(),
-                    Err(e) => return Err(e)
-                }
-            )),
-            Kind::Ident => Expr::FnCall {
-                ident: match self.eat(Kind::Ident) {
-                    Ok(val) => val.value,
-                    Err(e) => return Err(e)
-                },
-                params: Some(Box::new(match self.expr() {
-                    Ok(val) => val,
-                    Err(e) => return Err(e)
-                })),
-            }, // Instead of self.expr() we need to bring back self.arithmetic_expr()
-            _ => panic!(""),
+            Kind::Integer => Expr::Literal(Literal::Int(match self.eat(Kind::Integer) {
+                Ok(val) => val.value.to_string().parse::<i32>().unwrap(),
+                Err(e) => return Err(e),
+            })),
+            _ => {
+                return Err(SyntaxError(
+                    vec![Kind::Integer, Kind::Ident],
+                    Some(self.next.clone().unwrap().kind),
+                ))
+            }
         };
         Ok(literal)
     }
 
     fn function_call(&mut self) -> Result<Expr, SyntaxError> {
-        let  id = match self.eat(Kind::Ident) {
+        let id = match self.eat(Kind::Ident) {
             Ok(val) => val,
-            Err(e) => return Err(e)
+            Err(e) => return Err(e),
         };
+        /*
+        if self.next.unwrap().clone().kind != Kind::Dot {
+            If next is not a dot => this is a variable. Else, this is a function call
+        } */
         Ok(Expr::FnCall {
             ident: id.value,
             params: None,
@@ -129,16 +130,16 @@ impl Parser {
     fn low_prec_expr(&mut self) -> Result<Expr, SyntaxError> {
         let mut left = match self.high_prec_expr() {
             Ok(val) => val,
-            Err(e) => return Err(e)
+            Err(e) => return Err(e),
         };
         while self.next.clone().unwrap().get_prec() == 1 {
             let op = match self.eat(self.next.clone().unwrap().kind) {
                 Ok(val) => val,
-                Err(e) => return Err(e)
+                Err(e) => return Err(e),
             };
             let right = match self.high_prec_expr() {
                 Ok(val) => val,
-                Err(e) => return Err(e)
+                Err(e) => return Err(e),
             };
             left = Expr::Binary {
                 op,
@@ -153,16 +154,16 @@ impl Parser {
     fn high_prec_expr(&mut self) -> Result<Expr, SyntaxError> {
         let mut left = match self.literal() {
             Ok(val) => val,
-            Err(e) => return Err(e)
+            Err(e) => return Err(e),
         };
         while self.next.clone().unwrap().get_prec() == 2 {
             let op = match self.eat(self.next.clone().unwrap().kind) {
                 Ok(val) => val,
-                Err(e) => return Err(e)
+                Err(e) => return Err(e),
             };
             let right = match self.literal() {
                 Ok(val) => val,
-                Err(e) => return Err(e)
+                Err(e) => return Err(e),
             };
             left = Expr::Binary {
                 op,
@@ -178,7 +179,7 @@ impl Parser {
         self.eat(Kind::Fn);
         let id = match self.eat(Kind::Ident) {
             Ok(value) => value.value,
-            Err(e) => return Err(e)
+            Err(e) => return Err(e),
         };
 
         // Check if the function has parameters (if it has the :: operator, it has parameters).
@@ -188,7 +189,7 @@ impl Parser {
             while self.next.clone().unwrap().kind != Kind::Arrow {
                 params.push(match self.eat(Kind::Ident) {
                     Ok(val) => val.value,
-                    Err(e) => return Err(e)
+                    Err(e) => return Err(e),
                 });
                 if self.next.clone().unwrap().kind == Kind::Comma {
                     self.eat(Kind::Comma);
@@ -200,7 +201,7 @@ impl Parser {
                 params: Some(params),
                 operation: Box::new(match self.expr() {
                     Ok(val) => val,
-                    Err(e) => return Err(e)
+                    Err(e) => return Err(e),
                 }),
             });
         }
@@ -212,7 +213,7 @@ impl Parser {
             params: None,
             operation: Box::new(match self.expr() {
                 Ok(val) => val,
-                Err(e) => return Err(e)
+                Err(e) => return Err(e),
             }),
         })
     }
@@ -220,13 +221,13 @@ impl Parser {
     fn eat(&mut self, kind_target: Kind) -> Result<Token, SyntaxError> {
         let t: Token = match &self.next {
             Some(val) => val.to_owned(),
-            None => return Err(SyntaxError(kind_target, None)),
+            None => return Err(SyntaxError(vec![kind_target], None)),
         };
 
         let kind: Kind = t.clone().kind;
 
         if kind != kind_target {
-            return Err(SyntaxError(kind_target, Some(kind)));
+            return Err(SyntaxError(vec![kind_target], Some(kind)));
         }
 
         let new_lookahead = self.lexer.get_next();
