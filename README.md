@@ -10,11 +10,15 @@ Talking about syntax, here is the BNF of the language:
 
 <if> ::= 'if' <expr> '?' <expr> [':' <expr>]
 
-<binary> ::= (<literal> | <binary>) <op> (<literal> | <binary>)
+<binary> ::= <term> <op> <term>
 
 <op> ::= '+' | '-' | '/' | '*'
 
+<term> ::= (<literal> | <fncall>)
+
 <literal> ::= '+w/' | '+d/'
+
+<fncall> ::= <id> ['.' ...<expr> ',']
 ``` 
 ### Kind of a notepad
 
