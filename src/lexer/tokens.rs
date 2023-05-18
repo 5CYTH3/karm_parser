@@ -18,7 +18,6 @@ pub enum Kind {
     Geq,      // TODO
     DoubleEq, // TODO
     Neq,      // TODO
-    Dot,      // TODO (will be used for function calls)
 }
 #[derive(Debug, Clone)]
 pub struct Token {

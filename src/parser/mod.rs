@@ -106,16 +106,16 @@ impl Parser {
             Ok(val) => val,
             Err(e) => return Err(e),
         };
-        if self.next.clone().unwrap().kind == Kind::Dot {
-            self.eat(Kind::Dot);
-            while self.next.clone().unwrap().kind != Kind::Comma {
+        if self.next.clone().unwrap().kind == Kind::LParen {
+            self.eat(Kind::LParen);
+            while self.next.clone().unwrap().kind != Kind::RParen {
                 let param = match self.expr() {
                     Ok(val) => val,
                     Err(e) => return Err(e),
                 };
                 params.push(param);
             }
-            self.eat(Kind::Comma);
+            self.eat(Kind::RParen);
         }
         Ok(Expr::FnCall {
             ident: id.value,

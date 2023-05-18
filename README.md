@@ -26,7 +26,7 @@ With this grammar we can deduce all these behaviour :
 
 #### HelloWorld
 ```rust
-fn main -> puts "Hello, World";
+fn main -> puts("Hello, World");
 ```
 
 ### Example
@@ -49,5 +49,5 @@ Expr::Fn {
 ## Ideas
 Just a bunch of ideas I got that I will implement later
 ```rust
-fn fib :: n -> if n <= 1 ? n : (fib n - 1) + (fib n - 2);
+fn fib :: n -> if n <= 1 ? n : fib(n - 1) + fib(n - 2);
 ```
