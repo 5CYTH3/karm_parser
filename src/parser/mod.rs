@@ -15,13 +15,14 @@ pub enum Expr {
     Literal(Literal),
     FnCall {
         ident: String,
-        params: Option<Box<Expr>>,
+        params: Option<Vec<Expr>>,
     },
     Fn {
         ident: String,
         params: Option<Vec<String>>,
         operation: Box<Expr>,
     },
+    Var(String),
 }
 
 #[derive(Debug, Clone)]
@@ -83,50 +84,46 @@ impl Parser {
         };
         let expr = match next_token.kind {
             Kind::Fn => self.fun_expr(),
-            Kind::Integer => self.low_prec_expr(),
-            Kind::Ident => self.function_call(),
-            _ => {
-                return Err(SyntaxError(
-                    vec![Kind::Fn, Kind::Integer, Kind::Ident],
-                    Some(next_token.kind),
-                ))
-            }
+            _ => self.low_prec_expr(),
         };
         expr
     }
 
-    fn literal(&mut self) -> Result<Expr, SyntaxError> {
-        let literal = match self.next.clone().unwrap().kind {
-            Kind::Integer => Expr::Literal(Literal::Int(match self.eat(Kind::Integer) {
+    fn factor(&mut self) -> Result<Expr, SyntaxError> {
+        let literal: Result<Expr, SyntaxError> = match self.next.clone().unwrap().kind {
+            Kind::Integer => Ok(Expr::Literal(Literal::Int(match self.eat(Kind::Integer) {
                 Ok(val) => val.value.to_string().parse::<i32>().unwrap(),
                 Err(e) => return Err(e),
-            })),
-            _ => {
-                return Err(SyntaxError(
-                    vec![Kind::Integer, Kind::Ident],
-                    Some(self.next.clone().unwrap().kind),
-                ))
-            }
+            }))),
+            _ => self.ident(),
         };
-        Ok(literal)
+        literal
     }
 
-    fn function_call(&mut self) -> Result<Expr, SyntaxError> {
+    fn ident(&mut self) -> Result<Expr, SyntaxError> {
+        let mut params: Vec<Expr> = Vec::new();
         let id = match self.eat(Kind::Ident) {
             Ok(val) => val,
             Err(e) => return Err(e),
         };
-        /*
-        if self.next.unwrap().clone().kind != Kind::Dot {
-            If next is not a dot => this is a variable. Else, this is a function call
-        } */
+        if self.next.clone().unwrap().kind == Kind::Dot {
+            self.eat(Kind::Dot);
+            while self.next.clone().unwrap().kind != Kind::Comma {
+                let param = match self.expr() {
+                    Ok(val) => val,
+                    Err(e) => return Err(e),
+                };
+                params.push(param);
+            }
+            self.eat(Kind::Comma);
+        }
         Ok(Expr::FnCall {
             ident: id.value,
-            params: None,
+            params: Some(params),
         })
     }
 
-    // Operation such as +, -
+    // Operation such as +, - (expressions)
     fn low_prec_expr(&mut self) -> Result<Expr, SyntaxError> {
         let mut left = match self.high_prec_expr() {
             Ok(val) => val,
@@ -152,7 +149,7 @@ impl Parser {
 
     // Operation such as *, /
     fn high_prec_expr(&mut self) -> Result<Expr, SyntaxError> {
-        let mut left = match self.literal() {
+        let mut left = match self.factor() {
             Ok(val) => val,
             Err(e) => return Err(e),
         };
@@ -161,7 +158,7 @@ impl Parser {
                 Ok(val) => val,
                 Err(e) => return Err(e),
             };
-            let right = match self.literal() {
+            let right = match self.factor() {
                 Ok(val) => val,
                 Err(e) => return Err(e),
             };
