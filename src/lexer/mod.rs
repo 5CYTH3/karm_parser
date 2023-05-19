@@ -43,7 +43,6 @@ impl Lexer {
             (r"^/", Some(Kind::Div)),
             (r"^\+", Some(Kind::Plus)),
             (r"^\-", Some(Kind::Min)),
-            (r"^=", Some(Kind::Eq)),
             (r"^,", Some(Kind::Comma)),
             (r"^\(", Some(Kind::LParen)),
             (r"^\)", Some(Kind::RParen)),

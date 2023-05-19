@@ -8,7 +8,6 @@ pub enum Kind {
     Arrow,
     Plus,
     Min,
-    Eq,
     Integer,
     String,
     Fn,
