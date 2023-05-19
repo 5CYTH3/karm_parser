@@ -18,7 +18,7 @@ Talking about syntax, here is the BNF of the language:
 
 <literal> ::= '+w/' | '+d/'
 
-<fncall> ::= <id> ['.' ...<expr> ',']
+<fncall> ::= <id> ['(' ...<expr> ')']
 ``` 
 ### Kind of a notepad
 
@@ -39,6 +39,7 @@ We are supposed to get returned something like this:
 ```rust
 Expr::Fn {
 	id: "day"
+	params: None,
 	expr: Expr::Binary {
 		op: Op::Plus,
 		left: Expr::Literal("22"),

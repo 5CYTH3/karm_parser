@@ -12,8 +12,8 @@ pub enum Kind {
     Integer,
     Fn,
     Comma,
-    LParen,   // TODO
-    RParen,   // TODO
+    LParen,
+    RParen,
     Leq,      // TODO
     Geq,      // TODO
     DoubleEq, // TODO
