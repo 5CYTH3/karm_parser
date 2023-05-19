@@ -95,6 +95,10 @@ impl Parser {
                 Ok(val) => val.value.to_string().parse::<i32>().unwrap(),
                 Err(e) => return Err(e),
             }))),
+            Kind::String => Ok(Expr::Literal(Literal::Str(match self.eat(Kind::String) {
+                Ok(val) => val.value,
+                Err(e) => return Err(e),
+            }))),
             _ => self.ident(),
         };
         literal

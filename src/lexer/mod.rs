@@ -37,6 +37,7 @@ impl Lexer {
             (r"^\bfn\b", Some(Kind::Fn)),
             (r"^::", Some(Kind::DoubleColon)),
             (r"^;", Some(Kind::SemiColon)),
+            (r#"^"[^"]*""#, Some(Kind::String)),
             (r"^->", Some(Kind::Arrow)),
             (r"^\*", Some(Kind::Mul)),
             (r"^/", Some(Kind::Div)),

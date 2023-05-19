@@ -10,6 +10,7 @@ pub enum Kind {
     Min,
     Eq,
     Integer,
+    String,
     Fn,
     Comma,
     LParen,
