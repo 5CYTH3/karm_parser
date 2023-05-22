@@ -5,7 +5,7 @@ use crate::errors::SyntaxError;
 use crate::lexer::tokens::{Kind, Token};
 use crate::lexer::Lexer;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Binary {
         op: Token,
@@ -25,7 +25,7 @@ pub enum Expr {
     Var(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Literal {
     Str(String),
     Int(i32),
@@ -105,25 +105,30 @@ impl Parser {
     }
 
     fn ident(&mut self) -> Result<Expr, SyntaxError> {
-        let mut params: Vec<Expr> = Vec::new();
+        let params: Option<Vec<Expr>> = match self.next.clone().unwrap().kind {
+            Kind::LParen => {
+                let mut _params: Vec<Expr> = Vec::new();
+                self.eat(Kind::LParen);
+                while self.next.clone().unwrap().kind != Kind::RParen {
+                    let param = match self.expr() {
+                        Ok(val) => val,
+                        Err(e) => return Err(e),
+                    };
+                    _params.push(param);
+                }
+                self.eat(Kind::RParen);
+                Some(_params)
+            }
+            _ => None,
+        };
         let id = match self.eat(Kind::Ident) {
             Ok(val) => val,
             Err(e) => return Err(e),
         };
-        if self.next.clone().unwrap().kind == Kind::LParen {
-            self.eat(Kind::LParen);
-            while self.next.clone().unwrap().kind != Kind::RParen {
-                let param = match self.expr() {
-                    Ok(val) => val,
-                    Err(e) => return Err(e),
-                };
-                params.push(param);
-            }
-            self.eat(Kind::RParen);
-        }
+
         Ok(Expr::FnCall {
             ident: id.value,
-            params: Some(params),
+            params: params,
         })
     }
 
@@ -235,5 +240,74 @@ impl Parser {
         self.next = new_lookahead;
 
         Ok(t)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn binary_expr_int() {
+        assert_eq!(
+            Parser::new("3 + 4;".to_owned()).program(),
+            [Expr::Binary {
+                op: Token {
+                    kind: Kind::Plus,
+                    value: "+".to_owned()
+                },
+                lhs: Box::from(Expr::Literal(Literal::Int(3))),
+                rhs: Box::from(Expr::Literal(Literal::Int(4)))
+            }]
+        );
+    }
+
+    #[test]
+    fn binary_expr_str() {
+        assert_eq!(
+            Parser::new(r##""Helloworld" + 4;"##.to_owned()).program(),
+            [Expr::Binary {
+                op: Token {
+                    kind: Kind::Plus,
+                    value: "+".to_owned()
+                },
+                lhs: Box::from(Expr::Literal(Literal::Str(r#""Helloworld""#.to_owned()))),
+                rhs: Box::from(Expr::Literal(Literal::Int(4)))
+            }]
+        );
+    }
+
+    #[test]
+    fn function_expr() {
+        assert_eq!(
+            Parser::new(r#"fn main :: n -> n;"#.to_owned()).program(),
+            [Expr::Fn {
+                ident: "main".to_owned(),
+                params: Some(vec!["n".to_owned()]),
+                operation: Box::from(Expr::FnCall {
+                    ident: "n".to_owned(),
+                    params: None
+                })
+            }]
+        );
+    }
+
+    #[test]
+    fn function_in_function_expr() {
+        assert_eq!(
+            Parser::new(r#"fn main :: n -> fn help -> n;"#.to_owned()).program(),
+            [Expr::Fn {
+                ident: "main".to_owned(),
+                params: Some(vec!["n".to_owned()]),
+                operation: Box::from(Expr::Fn {
+                    ident: "help".to_owned(),
+                    params: None,
+                    operation: Box::from(Expr::FnCall {
+                        ident: "n".to_owned(),
+                        params: None
+                    })
+                })
+            }]
+        );
     }
 }

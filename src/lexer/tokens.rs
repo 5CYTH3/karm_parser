@@ -19,7 +19,7 @@ pub enum Kind {
     DoubleEq, // TODO
     Neq,      // TODO
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     pub kind: Kind,
     pub value: String,
