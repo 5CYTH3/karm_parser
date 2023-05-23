@@ -1,4 +1,3 @@
-use core::panic;
 use std::process::exit;
 
 use crate::errors::SyntaxError;
@@ -62,7 +61,10 @@ impl Parser {
             let exp = self.expr_def();
             program.push(match exp {
                 Ok(val) => val,
-                Err(e) => panic!("{}", e),
+                Err(e) => {
+                    println!("{}", e);
+                    exit(1)
+                }
             });
         }
         program
