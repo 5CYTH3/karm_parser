@@ -229,6 +229,7 @@ impl Parser {
         Ok(left)
     }
 
+    // TODO: Binary expressions with conditional expressions are allowed. Maybe put it on top instead of here so binary expressions work the right way.
     fn conditional_expr(&mut self) -> Result<Expr, SyntaxError> {
         let mut left: Expr = match self.factor() {
             Ok(val) => val,
@@ -269,7 +270,7 @@ impl Parser {
 
     fn ident(&mut self) -> Result<Expr, SyntaxError> {
         let params: Option<Vec<Expr>> = match self.next.clone().unwrap().kind {
-            // ! Params seems not to work.
+            // TODO: Params seems not to work.
             Kind::LParen => {
                 let mut _params: Vec<Expr> = Vec::new();
                 self.eat(Kind::LParen);

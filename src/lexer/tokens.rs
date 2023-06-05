@@ -17,10 +17,10 @@ pub enum Kind {
     If,
     QMark,
     Colon,
-    Leq,      // TODO
-    Geq,      // TODO
-    DoubleEq, // TODO
-    Neq,      // TODO
+    Leq,
+    Geq,
+    DoubleEq,
+    Neq,
 }
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
