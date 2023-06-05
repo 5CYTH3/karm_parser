@@ -14,6 +14,9 @@ pub enum Kind {
     Comma,
     LParen,
     RParen,
+    If,
+    QMark,
+    Colon,
     Leq,      // TODO
     Geq,      // TODO
     DoubleEq, // TODO

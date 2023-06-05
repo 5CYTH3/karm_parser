@@ -22,6 +22,11 @@ pub enum Expr {
         operation: Box<Expr>,
     },
     Var(String),
+    If {
+        cond: Box<Expr>,
+        then: Box<Expr>,
+        alter: Box<Expr>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -86,52 +91,91 @@ impl Parser {
         };
         let expr = match next_token.kind {
             Kind::Fn => self.fun_expr(),
-            _ => self.low_prec_expr(),
+            _ => Err(SyntaxError(vec![Kind::Fn], Some(next_token.kind))),
         };
         expr
     }
 
-    fn factor(&mut self) -> Result<Expr, SyntaxError> {
-        let literal: Result<Expr, SyntaxError> = match self.next.clone().unwrap().kind {
-            Kind::Integer => Ok(Expr::Literal(Literal::Int(match self.eat(Kind::Integer) {
-                Ok(val) => val.value.to_string().parse::<i32>().unwrap(),
-                Err(e) => return Err(e),
-            }))),
-            Kind::String => Ok(Expr::Literal(Literal::Str(match self.eat(Kind::String) {
-                Ok(val) => val.value,
-                Err(e) => return Err(e),
-            }))),
-            _ => self.ident(),
-        };
-        literal
-    }
-
-    fn ident(&mut self) -> Result<Expr, SyntaxError> {
-        let params: Option<Vec<Expr>> = match self.next.clone().unwrap().kind {
-            Kind::LParen => {
-                let mut _params: Vec<Expr> = Vec::new();
-                self.eat(Kind::LParen);
-                while self.next.clone().unwrap().kind != Kind::RParen {
-                    let param = match self.expr() {
-                        Ok(val) => val,
-                        Err(e) => return Err(e),
-                    };
-                    _params.push(param);
-                }
-                self.eat(Kind::RParen);
-                Some(_params)
-            }
-            _ => None,
-        };
+    // ? No more function nesting (we call low_prec_expr and not expr everywhere)
+    fn fun_expr(&mut self) -> Result<Expr, SyntaxError> {
+        self.eat(Kind::Fn);
         let id = match self.eat(Kind::Ident) {
-            Ok(val) => val,
+            Ok(value) => value.value,
             Err(e) => return Err(e),
         };
 
-        Ok(Expr::FnCall {
-            ident: id.value,
-            params: params,
+        // Check if the function has parameters (if it has the :: operator, it has parameters).
+        if self.next.clone().unwrap().kind == Kind::DoubleColon {
+            let mut params: Vec<String> = vec![];
+            self.eat(Kind::DoubleColon);
+            while self.next.clone().unwrap().kind != Kind::Arrow {
+                params.push(match self.eat(Kind::Ident) {
+                    Ok(val) => val.value,
+                    Err(e) => return Err(e),
+                });
+                if self.next.clone().unwrap().kind == Kind::Comma {
+                    self.eat(Kind::Comma);
+                }
+            }
+
+            self.eat(Kind::Arrow);
+            return Ok(Expr::Fn {
+                ident: id,
+                params: Some(params),
+                operation: Box::new(match self.if_expr() {
+                    Ok(val) => val,
+                    Err(e) => return Err(e),
+                }),
+            });
+        }
+
+        // If the function has no parameters, return a Expr::Fn with `None` as params value.
+        self.eat(Kind::Arrow);
+
+        Ok(Expr::Fn {
+            ident: id,
+            params: None,
+            operation: Box::new(match self.if_expr() {
+                Ok(val) => val,
+                Err(e) => return Err(e),
+            }),
         })
+    }
+
+    fn if_expr(&mut self) -> Result<Expr, SyntaxError> {
+        if self.next.clone().unwrap().kind == Kind::If {
+            self.eat(Kind::If);
+            let mut cond: Expr = Expr::Literal(Literal::Int(0));
+            let mut then: Expr = Expr::Literal(Literal::Int(0));
+            let mut alter: Expr = Expr::Literal(Literal::Int(0));
+            while self.next.clone().unwrap().kind != Kind::QMark {
+                /* A bit more complicated than that... we need a conditional statement */
+                cond = match self.low_prec_expr() {
+                    Ok(val) => val,
+                    Err(e) => return Err(e),
+                };
+            }
+            self.eat(Kind::QMark);
+            while self.next.clone().unwrap().kind != Kind::Colon {
+                then = match self.low_prec_expr() {
+                    Ok(val) => val,
+                    Err(e) => return Err(e),
+                }
+            }
+            self.eat(Kind::Colon);
+            while self.next.clone().unwrap().kind != Kind::SemiColon {
+                alter = match self.low_prec_expr() {
+                    Ok(val) => val,
+                    Err(e) => return Err(e),
+                }
+            }
+            return Ok(Expr::If {
+                cond: Box::from(cond),
+                then: Box::from(then),
+                alter: Box::from(alter),
+            });
+        }
+        self.low_prec_expr()
     }
 
     // Operation such as +, - (expressions)
@@ -182,47 +226,46 @@ impl Parser {
         Ok(left)
     }
 
-    // ? Weird behaviour : Function Definitions can be nested (caused by the use of self.expr() without restriction).
-    fn fun_expr(&mut self) -> Result<Expr, SyntaxError> {
-        self.eat(Kind::Fn);
+    fn factor(&mut self) -> Result<Expr, SyntaxError> {
+        let literal: Result<Expr, SyntaxError> = match self.next.clone().unwrap().kind {
+            Kind::Integer => Ok(Expr::Literal(Literal::Int(match self.eat(Kind::Integer) {
+                Ok(val) => val.value.to_string().parse::<i32>().unwrap(),
+                Err(e) => return Err(e),
+            }))),
+            Kind::String => Ok(Expr::Literal(Literal::Str(match self.eat(Kind::String) {
+                Ok(val) => val.value,
+                Err(e) => return Err(e),
+            }))),
+            _ => self.ident(),
+        };
+        literal
+    }
+
+    fn ident(&mut self) -> Result<Expr, SyntaxError> {
+        let params: Option<Vec<Expr>> = match self.next.clone().unwrap().kind {
+            Kind::LParen => {
+                let mut _params: Vec<Expr> = Vec::new();
+                self.eat(Kind::LParen);
+                while self.next.clone().unwrap().kind != Kind::RParen {
+                    let param = match self.low_prec_expr() {
+                        Ok(val) => val,
+                        Err(e) => return Err(e),
+                    };
+                    _params.push(param);
+                }
+                self.eat(Kind::RParen);
+                Some(_params)
+            }
+            _ => None,
+        };
         let id = match self.eat(Kind::Ident) {
-            Ok(value) => value.value,
+            Ok(val) => val,
             Err(e) => return Err(e),
         };
 
-        // Check if the function has parameters (if it has the :: operator, it has parameters).
-        if self.next.clone().unwrap().kind == Kind::DoubleColon {
-            let mut params: Vec<String> = vec![];
-            self.eat(Kind::DoubleColon);
-            while self.next.clone().unwrap().kind != Kind::Arrow {
-                params.push(match self.eat(Kind::Ident) {
-                    Ok(val) => val.value,
-                    Err(e) => return Err(e),
-                });
-                if self.next.clone().unwrap().kind == Kind::Comma {
-                    self.eat(Kind::Comma);
-                }
-            }
-            self.eat(Kind::Arrow);
-            return Ok(Expr::Fn {
-                ident: id,
-                params: Some(params),
-                operation: Box::new(match self.expr() {
-                    Ok(val) => val,
-                    Err(e) => return Err(e),
-                }),
-            });
-        }
-
-        // If the function has no parameters, return a Expr::Fn with `None` as params value.
-        self.eat(Kind::Arrow);
-        Ok(Expr::Fn {
-            ident: id,
-            params: None,
-            operation: Box::new(match self.expr() {
-                Ok(val) => val,
-                Err(e) => return Err(e),
-            }),
+        Ok(Expr::FnCall {
+            ident: id.value,
+            params: params,
         })
     }
 

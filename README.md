@@ -4,21 +4,23 @@ In my journey of understanding how compilers works, there is KARM. It's only a p
 
 Talking about syntax, here is the BNF of the language:
 ```html
-<expr> ::= (<fn> | <literal> | <binary> | <if>) ';'
+<expr> ::= <fn> ';'
 
-<fn> ::= 'fn' <id> ['::' <id>] '->' <expr>
+<fn> ::= 'fn' <id> ['::' <id>] '->' <content_expr>
 
-<if> ::= 'if' <expr> '?' <expr> [':' <expr>]
+<content_expr> ::= (<if> | <binary> | <literal>)
 
-<binary> ::= <term> <op> <term>
+<if> ::= 'if' <content_expr> '?' <content_expr> [':' <content_expr>]
 
-<op> ::= '+' | '-' | '/' | '*'
+<binary> ::= (<binary> | <term>) <op> ( <binary> | <term>)
 
-<term> ::= (<literal> | <fncall>)
+<term> ::= (<literal> | <fn_call>)
 
-<literal> ::= '+w/' | '+d/'
+<literal> ::= ('+w/' | '+d/')
 
-<fncall> ::= <id> ['(' ...<expr> ')']
+<op> ::= ('+' | '-' | '/' | '*')
+
+<fn_call> ::= <id> ['(' ...<content_expr> ')']
 ``` 
 ### Kind of a notepad
 

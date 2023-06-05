@@ -35,7 +35,9 @@ impl Lexer {
             (r"^\d+", Some(Kind::Integer)), // Integers
             (r"^\s+", None),                // Whitespace
             (r"^\bfn\b", Some(Kind::Fn)),
+            (r"^\bif\b", Some(Kind::If)),
             (r"^::", Some(Kind::DoubleColon)),
+            (r"^:", Some(Kind::Colon)),
             (r"^;", Some(Kind::SemiColon)),
             (r#"^"[^"]*""#, Some(Kind::String)),
             (r"^->", Some(Kind::Arrow)),
@@ -44,6 +46,7 @@ impl Lexer {
             (r"^\+", Some(Kind::Plus)),
             (r"^\-", Some(Kind::Min)),
             (r"^,", Some(Kind::Comma)),
+            (r"^\?", Some(Kind::QMark)),
             (r"^\(", Some(Kind::LParen)),
             (r"^\)", Some(Kind::RParen)),
             (r"^\w+", Some(Kind::Ident)),
