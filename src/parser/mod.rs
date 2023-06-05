@@ -51,7 +51,7 @@ impl Parser {
         }
     }
 
-    pub fn program(&mut self) -> Program {
+    pub fn program(mut self) -> Program {
         if self.next.is_none() {
             println!("Program Terminated : Lookahead is empty, nothing to parse.");
             exit(1)
@@ -85,13 +85,16 @@ impl Parser {
     }
 
     fn expr(&mut self) -> Result<Expr, SyntaxError> {
-        let next_token = match self.next.clone() {
+        let next_token = match &self.next {
             Some(token) => token,
             None => return Err(SyntaxError(vec![self.next.clone().unwrap().kind], None)),
         };
         let expr = match next_token.kind {
             Kind::Fn => self.fun_expr(),
-            _ => Err(SyntaxError(vec![Kind::Fn], Some(next_token.kind))),
+            _ => Err(SyntaxError(
+                vec![Kind::Fn],
+                Some(next_token.kind.to_owned()),
+            )),
         };
         expr
     }
@@ -204,11 +207,34 @@ impl Parser {
 
     // Operation such as *, /
     fn high_prec_expr(&mut self) -> Result<Expr, SyntaxError> {
-        let mut left = match self.factor() {
+        let mut left: Expr = match self.conditional_expr() {
             Ok(val) => val,
             Err(e) => return Err(e),
         };
         while self.next.clone().unwrap().get_prec() == 2 {
+            let op = match self.eat(self.next.clone().unwrap().kind) {
+                Ok(val) => val,
+                Err(e) => return Err(e),
+            };
+            let right = match self.conditional_expr() {
+                Ok(val) => val,
+                Err(e) => return Err(e),
+            };
+            left = Expr::Binary {
+                op,
+                lhs: Box::new(left),
+                rhs: Box::new(right),
+            };
+        }
+        Ok(left)
+    }
+
+    fn conditional_expr(&mut self) -> Result<Expr, SyntaxError> {
+        let mut left: Expr = match self.factor() {
+            Ok(val) => val,
+            Err(e) => return Err(e),
+        };
+        while self.next.clone().unwrap().get_prec() == 3 {
             let op = match self.eat(self.next.clone().unwrap().kind) {
                 Ok(val) => val,
                 Err(e) => return Err(e),
@@ -243,6 +269,7 @@ impl Parser {
 
     fn ident(&mut self) -> Result<Expr, SyntaxError> {
         let params: Option<Vec<Expr>> = match self.next.clone().unwrap().kind {
+            // ! Params seems not to work.
             Kind::LParen => {
                 let mut _params: Vec<Expr> = Vec::new();
                 self.eat(Kind::LParen);
