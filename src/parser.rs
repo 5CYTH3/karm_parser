@@ -99,7 +99,7 @@ impl Parser {
         expr
     }
 
-    // ? No more function nesting (we call low_prec_expr and not expr everywhere)
+    // ? No more function nesting (we call if_exprs and not expr everywhere)
     fn fun_expr(&mut self) -> Result<Expr, SyntaxError> {
         self.eat(Kind::Fn);
         let id = match self.eat(Kind::Ident) {
