@@ -22,6 +22,7 @@ pub enum Kind {
     DoubleEq,
     Neq,
 }
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     pub kind: Kind,
