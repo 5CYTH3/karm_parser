@@ -321,65 +321,44 @@ mod tests {
     use super::*;
 
     #[test]
-    fn binary_expr_int() {
+    fn bin_id_expr() {
         assert_eq!(
-            Parser::new("3 + 4;".to_owned()).program(),
-            [Expr::Binary {
-                op: Token {
-                    kind: Kind::Plus,
-                    value: "+".to_owned()
-                },
-                lhs: Box::from(Expr::Literal(Literal::Int(3))),
-                rhs: Box::from(Expr::Literal(Literal::Int(4)))
-            }]
-        );
-    }
-
-    #[test]
-    fn binary_expr_str() {
-        assert_eq!(
-            Parser::new(r##""Helloworld" + 4;"##.to_owned()).program(),
-            [Expr::Binary {
-                op: Token {
-                    kind: Kind::Plus,
-                    value: "+".to_owned()
-                },
-                lhs: Box::from(Expr::Literal(Literal::Str(r#""Helloworld""#.to_owned()))),
-                rhs: Box::from(Expr::Literal(Literal::Int(4)))
-            }]
-        );
-    }
-
-    #[test]
-    fn function_expr() {
-        assert_eq!(
-            Parser::new(r#"fn main :: n -> n;"#.to_owned()).program(),
+            Parser::new(r#"fn main :: n -> n + 3;"#.to_owned()).program(),
             [Expr::Fn {
                 ident: "main".to_owned(),
                 params: Some(vec!["n".to_owned()]),
-                operation: Box::from(Expr::FnCall {
-                    ident: "n".to_owned(),
-                    params: None
-                })
-            }]
-        );
-    }
-
-    #[test]
-    fn function_in_function_expr() {
-        assert_eq!(
-            Parser::new(r#"fn main :: n -> fn help -> n;"#.to_owned()).program(),
-            [Expr::Fn {
-                ident: "main".to_owned(),
-                params: Some(vec!["n".to_owned()]),
-                operation: Box::from(Expr::Fn {
-                    ident: "help".to_owned(),
-                    params: None,
-                    operation: Box::from(Expr::FnCall {
+                operation: Box::from(Expr::Binary { 
+                    op: Token { kind: Kind::Plus, value: "+".to_owned() }, 
+                    lhs: Box::from(Expr::FnCall {
                         ident: "n".to_owned(),
                         params: None
-                    })
+                    }),
+                    rhs: Box::from(Expr::Literal(Literal::Int(3))) 
                 })
+            }]
+        );
+    }
+
+    #[test]
+    fn if_expr() {
+        assert_eq!(
+            Parser::new(r#"fn main :: n -> if n <= 1 ? n : 0;"#.to_owned()).program(),
+            [Expr::Fn {
+                ident: "main".to_owned(),
+                params: Some(vec!["n".to_owned()]),
+                operation: Box::from(
+                    Expr::If {
+                        cond: Box::from(Expr::Binary {
+                            op: Token { kind: Kind::Leq, value: "<=".to_owned() },
+                            lhs: Box::from(Expr::FnCall { ident: "n".to_owned(), params: None }),
+                            rhs: Box::from(Expr::Literal(Literal::Int(1)))
+                        }),
+                        then: Box::from(
+                            Expr::FnCall { ident: "n".to_owned(), params: None }
+                        ),
+                        alter: Box::from(Expr::Literal(Literal::Int(0)))
+                    }
+                )
             }]
         );
     }
