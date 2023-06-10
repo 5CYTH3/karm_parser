@@ -147,7 +147,7 @@ impl Parser {
 
     fn if_expr(&mut self) -> Result<Expr, SyntaxError> {
         if self.next.clone().unwrap().kind == Kind::If {
-            self.eat(Kind::If);
+            &self.eat(Kind::If);
             let mut cond: Expr = Expr::Literal(Literal::Int(0));
             let mut then: Expr = Expr::Literal(Literal::Int(0));
             let mut alter: Expr = Expr::Literal(Literal::Int(0));
@@ -158,14 +158,14 @@ impl Parser {
                     Err(e) => return Err(e),
                 };
             }
-            self.eat(Kind::QMark);
+            &self.eat(Kind::QMark);
             while self.next.clone().unwrap().kind != Kind::Colon {
                 then = match self.low_prec_expr() {
                     Ok(val) => val,
                     Err(e) => return Err(e),
                 }
             }
-            self.eat(Kind::Colon);
+            &self.eat(Kind::Colon);
             while self.next.clone().unwrap().kind != Kind::SemiColon {
                 alter = match self.low_prec_expr() {
                     Ok(val) => val,
