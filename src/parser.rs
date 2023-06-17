@@ -270,32 +270,32 @@ impl Parser {
     }
 
     fn ident(&mut self) -> Result<Expr, SyntaxError> {
-        let params: Option<Vec<Expr>> = match self.next_token().kind {
-            // TODO: Params seems not to work.
-            Kind::LParen => {
-                let mut _params: Vec<Expr> = Vec::new();
-                self.eat(&Kind::LParen);
-                while self.next_token().kind != Kind::RParen {
-                    let param = match self.low_prec_expr() {
-                        Ok(val) => val,
-                        Err(e) => return Err(e),
-                    };
-                    _params.push(param);
-                }
-                self.eat(&Kind::RParen);
-                Some(_params)
-            }
-            _ => None,
-        };
         let id = match self.eat(&Kind::Ident) {
             Ok(val) => val,
             Err(e) => return Err(e),
         };
+        if self.next_token().kind == Kind::LParen {
+            let mut _params: Vec<Expr> = Vec::new();
+            self.eat(&Kind::LParen);
 
-        Ok(Expr::FnCall {
-            ident: id.value,
-            params: params,
-        })
+            while self.next_token().kind != Kind::RParen {
+                let param = match self.conditional_expr() {
+                    Ok(val) => val,
+                    Err(e) => return Err(e),
+                };
+                _params.push(param);
+            }
+            self.eat(&Kind::RParen);
+            let params: Option<Vec<Expr>> = match _params.is_empty() {
+                true => None,
+                false => Some(_params),
+            };
+            return Ok(Expr::FnCall {
+                ident: id.value,
+                params: params,
+            });
+        }
+        Ok(Expr::Var(id.value))
     }
 
     fn next_token(&self) -> &Token {
