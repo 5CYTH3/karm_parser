@@ -13,6 +13,7 @@ struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
 
+    /// Print the resulted AST
     #[arg(short, long)]
     ast: bool,
 }
@@ -20,10 +21,9 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Build the specified file (see karm build --help)
-    Build {
-        file: String,
-    },
+    Build { file: String },
 
+    /// Interpret the input using a shell
     Shell {},
 }
 
