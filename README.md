@@ -26,35 +26,16 @@ Talking about syntax, here is the BNF of the language:
 
 <var> ::= <id>
 ``` 
-### Kind of a notepad
+## Examples
 
-With this grammar we can deduce all these behaviour :
-
-#### HelloWorld
+### Hello World!
 ```rust
 fn main -> puts("Hello, World");
 ```
+(The `puts()` function will be part of the standard library)
 
-### Example
-With this example :
-```rust
-fn day -> 22 + 5;
-```
-We are supposed to get returned something like this:
-
-```rust
-Expr::Fn {
-	id: "day"
-	params: None,
-	expr: Expr::Binary {
-		op: Op::Plus,
-		left: Expr::Literal("22"),
-		right: Expr::Literal("5")
-	}
-}
-```
-## Ideas
-Just a bunch of ideas I got that I will implement later
+### Fibonacci
+Basic implementation of the fibonacci sequence in Karm :
 ```rust
 fn fib :: n -> if n <= 1 ? n : fib(n - 1) + fib(n - 2);
 ```

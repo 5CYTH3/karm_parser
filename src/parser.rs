@@ -7,7 +7,7 @@ use crate::lexer::Lexer;
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Binary {
-        op: Token,
+        op: Kind,
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     },
@@ -27,6 +27,7 @@ pub enum Expr {
         then: Box<Expr>,
         alter: Box<Expr>,
     },
+    Use(String),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -87,16 +88,33 @@ impl Parser {
     fn expr(&mut self) -> Result<Expr, SyntaxError> {
         let next_token = match &self.next {
             Some(token) => token,
-            None => return Err(SyntaxError(vec![self.next_token().kind], None)),
+            None => {
+                return Err(SyntaxError(
+                    vec![self.next_token().kind],
+                    None,
+                    (self.lexer.col_cursor, self.lexer.line_cursor),
+                ))
+            }
         };
         let expr = match next_token.kind {
             Kind::Fn => self.fun_expr(),
+            Kind::Use => self.use_expr(),
             _ => Err(SyntaxError(
                 vec![Kind::Fn],
                 Some(next_token.kind.to_owned()),
+                (self.lexer.col_cursor, self.lexer.line_cursor),
             )),
         };
         expr
+    }
+
+    fn use_expr(&mut self) -> Result<Expr, SyntaxError> {
+        self.eat(&Kind::Use);
+        let path = match self.eat(&Kind::String) {
+            Ok(val) => val.value,
+            Err(e) => return Err(e),
+        };
+        Ok(Expr::Use(path))
     }
 
     // ? No more function nesting (we call low_prec_expr and not expr everywhere)
@@ -188,7 +206,7 @@ impl Parser {
         };
         while self.next_token().get_prec() == 1 {
             let op = match self.eat(&self.next_token().clone().kind) {
-                Ok(val) => val,
+                Ok(val) => val.kind,
                 Err(e) => return Err(e),
             };
             let right = match self.low_prec_expr() {
@@ -212,7 +230,7 @@ impl Parser {
         };
         while self.next_token().get_prec() == 2 {
             let op = match self.eat(&self.next_token().clone().kind) {
-                Ok(val) => val,
+                Ok(val) => val.kind,
                 Err(e) => return Err(e),
             };
             let right = match self.high_prec_expr() {
@@ -236,7 +254,7 @@ impl Parser {
         };
         while self.next_token().get_prec() == 3 {
             let op = match self.eat(&self.next_token().clone().kind) {
-                Ok(val) => val,
+                Ok(val) => val.kind,
                 Err(e) => return Err(e),
             };
             let right = match self.factor() {
@@ -305,11 +323,21 @@ impl Parser {
     fn eat(&mut self, kind_target: &Kind) -> Result<Token, SyntaxError> {
         let t: Token = match &self.next {
             Some(val) => val.to_owned(),
-            None => return Err(SyntaxError(vec![*kind_target], None)),
+            None => {
+                return Err(SyntaxError(
+                    vec![*kind_target],
+                    None,
+                    (self.lexer.col_cursor, self.lexer.line_cursor),
+                ))
+            }
         };
 
         if &t.kind != kind_target {
-            return Err(SyntaxError(vec![*kind_target], Some(t.kind)));
+            return Err(SyntaxError(
+                vec![*kind_target],
+                Some(t.kind),
+                (self.lexer.col_cursor, self.lexer.line_cursor),
+            ));
         }
 
         self.next = self.lexer.get_next();
@@ -323,51 +351,39 @@ mod tests {
     use super::*;
 
     #[test]
-    fn bin_id_expr() {
+    fn fib_func() {
         assert_eq!(
-            Parser::new(r#"fn main :: n -> n + 3;"#.to_owned()).program(),
+            Parser::new(r#"fn fib :: n -> if n <= 1 ? n : fib(n - 1) + fib(n - 2);"#.to_owned())
+                .program(),
             [Expr::Fn {
-                ident: "main".to_owned(),
-                params: Some(vec!["n".to_owned()]),
-                operation: Box::from(Expr::Binary {
-                    op: Token {
-                        kind: Kind::Plus,
-                        value: "+".to_owned()
-                    },
-                    lhs: Box::from(Expr::FnCall {
-                        ident: "n".to_owned(),
-                        params: None
-                    }),
-                    rhs: Box::from(Expr::Literal(Literal::Int(3)))
-                })
-            }]
-        );
-    }
-
-    #[test]
-    fn if_expr() {
-        assert_eq!(
-            Parser::new(r#"fn main :: n -> if n <= 1 ? n : 0;"#.to_owned()).program(),
-            [Expr::Fn {
-                ident: "main".to_owned(),
+                ident: "fib".to_owned(),
                 params: Some(vec!["n".to_owned()]),
                 operation: Box::from(Expr::If {
                     cond: Box::from(Expr::Binary {
-                        op: Token {
-                            kind: Kind::Leq,
-                            value: "<=".to_owned()
-                        },
-                        lhs: Box::from(Expr::FnCall {
-                            ident: "n".to_owned(),
-                            params: None
-                        }),
+                        op: Kind::Leq,
+                        lhs: Box::from(Expr::Var("n".to_owned())),
                         rhs: Box::from(Expr::Literal(Literal::Int(1)))
                     }),
-                    then: Box::from(Expr::FnCall {
-                        ident: "n".to_owned(),
-                        params: None
-                    }),
-                    alter: Box::from(Expr::Literal(Literal::Int(0)))
+                    then: Box::from(Expr::Var("n".to_owned())),
+                    alter: Box::from(Expr::Binary {
+                        op: Kind::Plus,
+                        lhs: Box::from(Expr::FnCall {
+                            ident: "fib".to_owned(),
+                            params: Some(vec![Expr::Binary {
+                                op: Kind::Min,
+                                lhs: Box::from(Expr::Var("n".to_owned())),
+                                rhs: Box::from(Expr::Literal(Literal::Int(1)))
+                            }])
+                        }),
+                        rhs: Box::from(Expr::FnCall {
+                            ident: "fib".to_owned(),
+                            params: Some(vec![Expr::Binary {
+                                op: Kind::Min,
+                                lhs: Box::from(Expr::Var("n".to_owned())),
+                                rhs: Box::from(Expr::Literal(Literal::Int(2)))
+                            }])
+                        }),
+                    })
                 })
             }]
         );

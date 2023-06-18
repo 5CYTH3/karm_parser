@@ -1,5 +1,6 @@
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Kind {
+    Newline,
     DoubleColon,
     Ident,
     SemiColon,
@@ -21,6 +22,7 @@ pub enum Kind {
     Geq,
     DoubleEq,
     Neq,
+    Use,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -30,13 +32,6 @@ pub struct Token {
 }
 
 impl Token {
-    pub fn is_op(&self) -> bool {
-        return self.kind == Kind::Min
-            || self.kind == Kind::Plus
-            || self.kind == Kind::Div
-            || self.kind == Kind::Mul;
-    }
-
     pub fn get_prec(&self) -> i32 {
         match self.kind {
             Kind::Mul | Kind::Div => return 3,
