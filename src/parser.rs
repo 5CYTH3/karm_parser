@@ -200,11 +200,7 @@ impl Parser {
     }
 
     fn binary_expr(&mut self) -> Result<Expr, SyntaxError> {
-        let binexp = match self.next_token().kind {
-            Kind::LParen => self.parenthesized_expr(),
-            _ => self.conditional_expr(),
-        };
-        binexp
+        self.conditional_expr()
     }
 
     fn parenthesized_expr(&mut self) -> Result<Expr, SyntaxError> {
@@ -297,6 +293,7 @@ impl Parser {
                 Ok(val) => val.value,
                 Err(e) => return Err(e),
             }))),
+            Kind::LParen => self.parenthesized_expr(),
             _ => self.ident(),
         };
         literal
