@@ -5,7 +5,7 @@ mod typechecker;
 
 use clap::{Parser, Subcommand};
 use parser::Parser as KarmParser;
-use std::{path::PathBuf, process::exit};
+use std::{fs, path::PathBuf, process::exit};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -13,7 +13,7 @@ struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
 
-    /// Print the resulted AST
+    /// Print the result AST
     #[arg(short, long)]
     ast: bool,
 }
@@ -39,9 +39,11 @@ fn main() {
 
 fn build(path: &String, cli: &Cli) {
     if path.ends_with(".kr") {
-        let program: &str = r#"use "std.kr";
-    fn fib :: n -> if n <= 1 ? n : fib(n - 1) + fib(n - 2);"#;
-        let ast = KarmParser::new(program.to_owned()).program();
+        let program = match fs::read_to_string(path) {
+            Ok(value) => value,
+            Err(e) => panic!("{}", e),
+        };
+        let ast = KarmParser::new(program).program();
         if cli.ast == true {
             println!("{:?}", ast);
         }
@@ -50,3 +52,5 @@ fn build(path: &String, cli: &Cli) {
         exit(1);
     }
 }
+
+fn shell() {}

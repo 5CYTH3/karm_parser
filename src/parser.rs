@@ -109,7 +109,7 @@ impl Parser {
     }
 
     fn use_expr(&mut self) -> Result<Expr, SyntaxError> {
-        self.eat(&Kind::Use);
+        self.eat(&Kind::Use)?;
         let path = match self.eat(&Kind::String) {
             Ok(val) => val.value,
             Err(e) => return Err(e),
@@ -119,7 +119,7 @@ impl Parser {
 
     // ? No more function nesting (we call low_prec_expr and not expr everywhere)
     fn fun_expr(&mut self) -> Result<Expr, SyntaxError> {
-        self.eat(&mut Kind::Fn);
+        self.eat(&mut Kind::Fn)?;
         let id = match self.eat(&Kind::Ident) {
             Ok(value) => value.value,
             Err(e) => return Err(e),
@@ -128,18 +128,18 @@ impl Parser {
         // Check if the function has parameters (if it has the :: operator, it has parameters).
         if self.next_token().kind == Kind::DoubleColon {
             let mut params: Vec<String> = vec![];
-            self.eat(&mut Kind::DoubleColon);
+            self.eat(&mut Kind::DoubleColon)?;
             while self.next_token().kind != Kind::Arrow {
                 params.push(match self.eat(&Kind::Ident) {
                     Ok(val) => val.value,
                     Err(e) => return Err(e),
                 });
                 if self.next_token().kind == Kind::Comma {
-                    self.eat(&Kind::Comma);
+                    self.eat(&Kind::Comma)?;
                 }
             }
 
-            self.eat(&Kind::Arrow);
+            self.eat(&Kind::Arrow)?;
             return Ok(Expr::Fn {
                 ident: id,
                 params: Some(params),
@@ -151,7 +151,7 @@ impl Parser {
         }
 
         // If the function has no parameters, return a Expr::Fn with `None` as params value.
-        self.eat(&Kind::Arrow);
+        self.eat(&Kind::Arrow)?;
 
         Ok(Expr::Fn {
             ident: id,
@@ -165,7 +165,7 @@ impl Parser {
 
     fn if_expr(&mut self) -> Result<Expr, SyntaxError> {
         if self.next_token().kind == Kind::If {
-            self.eat(&Kind::If);
+            self.eat(&Kind::If)?;
             let mut cond: Expr = Expr::Literal(Literal::Int(0));
             let mut then: Expr = Expr::Literal(Literal::Int(0));
             let mut alter: Expr = Expr::Literal(Literal::Int(0));
@@ -176,14 +176,14 @@ impl Parser {
                     Err(e) => return Err(e),
                 };
             }
-            self.eat(&Kind::QMark);
+            self.eat(&Kind::QMark)?;
             while self.next_token().kind != Kind::Colon {
                 then = match self.conditional_expr() {
                     Ok(val) => val,
                     Err(e) => return Err(e),
                 }
             }
-            self.eat(&Kind::Colon);
+            self.eat(&Kind::Colon)?;
             while self.next_token().kind != Kind::SemiColon {
                 alter = match self.conditional_expr() {
                     Ok(val) => val,
@@ -294,7 +294,7 @@ impl Parser {
         };
         if self.next_token().kind == Kind::LParen {
             let mut _params: Vec<Expr> = Vec::new();
-            self.eat(&Kind::LParen);
+            self.eat(&Kind::LParen)?;
 
             while self.next_token().kind != Kind::RParen {
                 let param = match self.conditional_expr() {
@@ -303,7 +303,7 @@ impl Parser {
                 };
                 _params.push(param);
             }
-            self.eat(&Kind::RParen);
+            self.eat(&Kind::RParen)?;
             let params: Option<Vec<Expr>> = match _params.is_empty() {
                 true => None,
                 false => Some(_params),
