@@ -1,5 +1,8 @@
 use crate::parser::Expr;
 
-pub enum Type {}
+pub enum Type {
+    Int,
+    Str,
+}
 
 fn type_check() {}

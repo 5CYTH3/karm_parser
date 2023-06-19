@@ -8,19 +8,19 @@ Talking about syntax, here is the BNF of the language:
 
 <expr> ::= <fn> ';'
 
-<fn> ::= 'fn' <id> ['::' <id>*] '->' <content_expr>
+<fn> ::= 'fn' <id> ['::' (<id> ',')*] '->' <content_expr>
 
-<content_expr> ::= (<if> | <binary> | <literal>)
+<content_expr> ::= (<if> | <binary> | <term>)
 
 <if> ::= 'if' <binary> '?' <content_expr> ':' <content_expr>
 
 <binary> ::= (<binary> | <term>) <op> ( <binary> | <term>)
 
+<op> ::= '+' | '-' | '/' | '*'
+
 <term> ::= (<literal> | <fn_call> | <var>)
 
 <literal> ::= ('+w/' | '+d/')
-
-<op> ::= ('+' | '-' | '/' | '*')
 
 <fn_call> ::= <id> '(' [<content_expr>*] ')'
 
