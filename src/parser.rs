@@ -171,21 +171,21 @@ impl Parser {
             let mut alter: Expr = Expr::Literal(Literal::Int(0));
             while self.next_token().kind != Kind::QMark {
                 /* A bit more complicated than that... we need a conditional statement */
-                cond = match self.conditional_expr() {
+                cond = match self.binary_expr() {
                     Ok(val) => val,
                     Err(e) => return Err(e),
                 };
             }
             self.eat(&Kind::QMark)?;
             while self.next_token().kind != Kind::Colon {
-                then = match self.conditional_expr() {
+                then = match self.binary_expr() {
                     Ok(val) => val,
                     Err(e) => return Err(e),
                 }
             }
             self.eat(&Kind::Colon)?;
             while self.next_token().kind != Kind::SemiColon {
-                alter = match self.conditional_expr() {
+                alter = match self.binary_expr() {
                     Ok(val) => val,
                     Err(e) => return Err(e),
                 }
@@ -196,7 +196,22 @@ impl Parser {
                 alter: Box::from(alter),
             });
         }
-        self.low_prec_expr()
+        self.binary_expr()
+    }
+
+    fn binary_expr(&mut self) -> Result<Expr, SyntaxError> {
+        let binexp = match self.next_token().kind {
+            Kind::LParen => self.parenthesized_expr(),
+            _ => self.conditional_expr(),
+        };
+        binexp
+    }
+
+    fn parenthesized_expr(&mut self) -> Result<Expr, SyntaxError> {
+        self.eat(&Kind::LParen)?;
+        let expr = self.binary_expr();
+        self.eat(&Kind::RParen)?;
+        expr
     }
 
     fn conditional_expr(&mut self) -> Result<Expr, SyntaxError> {
@@ -310,7 +325,7 @@ impl Parser {
             };
             return Ok(Expr::FnCall {
                 ident: id.value,
-                params: params,
+                params,
             });
         }
         Ok(Expr::Var(id.value))
