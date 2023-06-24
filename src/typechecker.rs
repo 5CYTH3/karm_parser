@@ -70,8 +70,6 @@ impl TypeChecker {
             ));
         };
 
-        // Little confusion here. This is not the type of the whole expression but the types that are accepted on the left and right
-        // So second line should be allowed for almost all types
         let op_expected_type = match op {
             Kind::Mul | Kind::Div | Kind::Plus | Kind::Min => vec![Type::Int],
             Kind::Neq | Kind::DoubleEq => vec![Type::Int, Type::Str, Type::Bool],
@@ -81,7 +79,7 @@ impl TypeChecker {
 
         if !op_expected_type.contains(&expr_type) {
             return Err(TypeError(
-                "The left and right expressions does cannot be compared with this operator."
+                "The left hand side and right hand side expressions cannot be compared with this operator."
                     .to_owned(),
             ));
         }
