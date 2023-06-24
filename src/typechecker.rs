@@ -70,14 +70,14 @@ impl TypeChecker {
             ));
         };
 
-        let op_expected_type = match op {
+        let op_accepted_type = match op {
             Kind::Mul | Kind::Div | Kind::Plus | Kind::Min => vec![Type::Int],
             Kind::Neq | Kind::DoubleEq => vec![Type::Int, Type::Str, Type::Bool],
             Kind::Geq | Kind::Leq => vec![Type::Int],
             _ => vec![Type::Invalid],
         };
 
-        if !op_expected_type.contains(&expr_type) {
+        if !op_accepted_type.contains(&expr_type) {
             return Err(TypeError(
                 "The left hand side and right hand side expressions cannot be compared with this operator."
                     .to_owned(),
