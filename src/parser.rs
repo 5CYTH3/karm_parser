@@ -36,7 +36,8 @@ pub enum Literal {
     Int(i32),
 }
 
-type Program = Vec<Expr>;
+pub type Program = Vec<Expr>;
+
 
 pub struct Parser {
     next: Option<Token>,

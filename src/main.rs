@@ -6,6 +6,7 @@ mod typechecker;
 use clap::{Parser, Subcommand};
 use parser::Parser as KarmParser;
 use std::{fs, path::PathBuf, process::exit};
+use typechecker::TypeChecker;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -47,6 +48,7 @@ fn build(path: &String, cli: &Cli) {
         if cli.ast == true {
             println!("{:?}", ast);
         }
+        TypeChecker::new(ast).init();
     } else {
         println!("This is not a valid Karm file! (.kr)");
         exit(1);
