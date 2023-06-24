@@ -48,6 +48,8 @@ fn build(path: &String, cli: &Cli) {
         if cli.ast == true {
             println!("{:?}", ast);
         }
+
+        // As we are here passing `ast` so its value is moved and not borrowed (but we don't want that...)
         TypeChecker::new(ast).init();
     } else {
         println!("This is not a valid Karm file! (.kr)");
