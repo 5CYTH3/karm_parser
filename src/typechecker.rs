@@ -46,24 +46,16 @@ impl TypeChecker {
                 operation,
             } => self.type_check(&operation),
             Expr::Binary { op, lhs, rhs } => {
-                self.type_check_binary(self.type_check(lhs), self.type_check(rhs), *op)
+                self.type_check_binary(self.type_check(lhs)?, self.type_check(rhs)?, *op)
             }
             Expr::Literal(l) => Ok(self.type_check_literal(l)),
             _ => Ok(Type::Whatever),
         }
     }
 
-    fn type_check_binary(
-        &self,
-        left: Result<Type, TypeError>,
-        right: Result<Type, TypeError>,
-        op: Kind,
-    ) -> Result<Type, TypeError> {
-        let lhs = left?;
-        let rhs = right?;
-
-        let expr_type = if lhs == rhs {
-            lhs
+    fn type_check_binary(&self, left: Type, right: Type, op: Kind) -> Result<Type, TypeError> {
+        let expr_type = if left == right {
+            left
         } else {
             return Err(TypeError(
                 "Cannot compare two different types in a BinaryExpr".to_owned(),
