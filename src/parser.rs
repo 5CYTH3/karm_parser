@@ -38,7 +38,6 @@ pub enum Literal {
 
 pub type Program = Vec<Expr>;
 
-
 pub struct Parser {
     next: Option<Token>,
     lexer: Lexer,
@@ -79,10 +78,7 @@ impl Parser {
 
     fn expr_def(&mut self) -> Result<Expr, SyntaxError> {
         let expr = self.expr();
-        match self.eat(&mut Kind::SemiColon) {
-            Ok(val) => (),
-            Err(e) => return Err(e),
-        };
+        self.eat(&mut Kind::SemiColon)?;
         expr
     }
 
@@ -111,30 +107,21 @@ impl Parser {
 
     fn use_expr(&mut self) -> Result<Expr, SyntaxError> {
         self.eat(&Kind::Use)?;
-        let path = match self.eat(&Kind::String) {
-            Ok(val) => val.value,
-            Err(e) => return Err(e),
-        };
+        let path = self.eat(&Kind::String)?.value;
         Ok(Expr::Use(path))
     }
 
     // ? No more function nesting (we call low_prec_expr and not expr everywhere)
     fn fun_expr(&mut self) -> Result<Expr, SyntaxError> {
         self.eat(&mut Kind::Fn)?;
-        let id = match self.eat(&Kind::Ident) {
-            Ok(value) => value.value,
-            Err(e) => return Err(e),
-        };
+        let id = self.eat(&Kind::Ident)?.value;
 
         // Check if the function has parameters (if it has the :: operator, it has parameters).
         if self.next_token().kind == Kind::DoubleColon {
             let mut params: Vec<String> = vec![];
             self.eat(&mut Kind::DoubleColon)?;
             while self.next_token().kind != Kind::Arrow {
-                params.push(match self.eat(&Kind::Ident) {
-                    Ok(val) => val.value,
-                    Err(e) => return Err(e),
-                });
+                params.push(self.eat(&Kind::Ident)?.value);
                 if self.next_token().kind == Kind::Comma {
                     self.eat(&Kind::Comma)?;
                 }
@@ -144,10 +131,7 @@ impl Parser {
             return Ok(Expr::Fn {
                 ident: id,
                 params: Some(params),
-                operation: Box::new(match self.if_expr() {
-                    Ok(val) => val,
-                    Err(e) => return Err(e),
-                }),
+                operation: Box::new(self.if_expr()?),
             });
         }
 
@@ -157,10 +141,7 @@ impl Parser {
         Ok(Expr::Fn {
             ident: id,
             params: None,
-            operation: Box::new(match self.if_expr() {
-                Ok(val) => val,
-                Err(e) => return Err(e),
-            }),
+            operation: Box::new(self.if_expr()?),
         })
     }
 
@@ -171,25 +152,15 @@ impl Parser {
             let mut then: Expr = Expr::Literal(Literal::Int(0));
             let mut alter: Expr = Expr::Literal(Literal::Int(0));
             while self.next_token().kind != Kind::QMark {
-                /* A bit more complicated than that... we need a conditional statement */
-                cond = match self.binary_expr() {
-                    Ok(val) => val,
-                    Err(e) => return Err(e),
-                };
+                cond = self.binary_expr()?
             }
             self.eat(&Kind::QMark)?;
             while self.next_token().kind != Kind::Colon {
-                then = match self.binary_expr() {
-                    Ok(val) => val,
-                    Err(e) => return Err(e),
-                }
+                then = self.binary_expr()?
             }
             self.eat(&Kind::Colon)?;
             while self.next_token().kind != Kind::SemiColon {
-                alter = match self.binary_expr() {
-                    Ok(val) => val,
-                    Err(e) => return Err(e),
-                }
+                alter = self.binary_expr()?
             }
             return Ok(Expr::If {
                 cond: Box::from(cond),
@@ -212,19 +183,10 @@ impl Parser {
     }
 
     fn conditional_expr(&mut self) -> Result<Expr, SyntaxError> {
-        let mut left: Expr = match self.low_prec_expr() {
-            Ok(val) => val,
-            Err(e) => return Err(e),
-        };
+        let mut left: Expr = self.low_prec_expr()?;
         while self.next_token().get_prec() == 1 {
-            let op = match self.eat(&self.next_token().clone().kind) {
-                Ok(val) => val.kind,
-                Err(e) => return Err(e),
-            };
-            let right = match self.low_prec_expr() {
-                Ok(val) => val,
-                Err(e) => return Err(e),
-            };
+            let op = self.eat(&self.next_token().clone().kind)?.kind;
+            let right = self.low_prec_expr()?;
             left = Expr::Binary {
                 op,
                 lhs: Box::new(left),
@@ -236,19 +198,13 @@ impl Parser {
 
     // Operation such as +, - (expressions)
     fn low_prec_expr(&mut self) -> Result<Expr, SyntaxError> {
-        let mut left = match self.high_prec_expr() {
-            Ok(val) => val,
-            Err(e) => return Err(e),
-        };
+        let mut left = self.high_prec_expr()?;
         while self.next_token().get_prec() == 2 {
             let op = match self.eat(&self.next_token().clone().kind) {
                 Ok(val) => val.kind,
                 Err(e) => return Err(e),
             };
-            let right = match self.high_prec_expr() {
-                Ok(val) => val,
-                Err(e) => return Err(e),
-            };
+            let right = self.high_prec_expr()?;
             left = Expr::Binary {
                 op,
                 lhs: Box::new(left),
@@ -260,19 +216,10 @@ impl Parser {
 
     // Operation such as *, /
     fn high_prec_expr(&mut self) -> Result<Expr, SyntaxError> {
-        let mut left: Expr = match self.factor() {
-            Ok(val) => val,
-            Err(e) => return Err(e),
-        };
+        let mut left: Expr = self.factor()?;
         while self.next_token().get_prec() == 3 {
-            let op = match self.eat(&self.next_token().clone().kind) {
-                Ok(val) => val.kind,
-                Err(e) => return Err(e),
-            };
-            let right = match self.factor() {
-                Ok(val) => val,
-                Err(e) => return Err(e),
-            };
+            let op = self.eat(&self.next_token().clone().kind)?.kind;
+            let right = self.factor()?;
             left = Expr::Binary {
                 op,
                 lhs: Box::new(left),
@@ -290,10 +237,7 @@ impl Parser {
                     Err(e) => return Err(e),
                 },
             ))),
-            Kind::String => Ok(Expr::Literal(Literal::Str(match self.eat(&Kind::String) {
-                Ok(val) => val.value,
-                Err(e) => return Err(e),
-            }))),
+            Kind::String => Ok(Expr::Literal(Literal::Str(self.eat(&Kind::String)?.value))),
             Kind::LParen => self.parenthesized_expr(),
             _ => self.ident(),
         };
@@ -301,19 +245,13 @@ impl Parser {
     }
 
     fn ident(&mut self) -> Result<Expr, SyntaxError> {
-        let id = match self.eat(&Kind::Ident) {
-            Ok(val) => val,
-            Err(e) => return Err(e),
-        };
+        let id = self.eat(&Kind::Ident)?;
         if self.next_token().kind == Kind::LParen {
             let mut _params: Vec<Expr> = Vec::new();
             self.eat(&Kind::LParen)?;
 
             while self.next_token().kind != Kind::RParen {
-                let param = match self.conditional_expr() {
-                    Ok(val) => val,
-                    Err(e) => return Err(e),
-                };
+                let param = self.conditional_expr()?;
                 _params.push(param);
             }
             self.eat(&Kind::RParen)?;

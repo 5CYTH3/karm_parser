@@ -59,15 +59,8 @@ impl TypeChecker {
         right: Result<Type, TypeError>,
         op: Kind,
     ) -> Result<Type, TypeError> {
-        let lhs = match left {
-            Ok(t) => t,
-            Err(e) => return Err(e),
-        };
-
-        let rhs = match right {
-            Ok(t) => t,
-            Err(e) => return Err(e),
-        };
+        let lhs = left?;
+        let rhs = right?;
 
         let expr_type = if lhs == rhs {
             lhs
@@ -77,20 +70,23 @@ impl TypeChecker {
             ));
         };
 
+        // Little confusion here. This is not the type of the whole expression but the types that are accepted on the left and right
+        // So second line should be allowed for almost all types
         let op_expected_type = match op {
-            Kind::Mul | Kind::Div | Kind::Plus | Kind::Min => Type::Int,
-            Kind::DoubleEq | Kind::Geq | Kind::Neq | Kind::Leq => Type::Bool,
-            _ => Type::Invalid,
+            Kind::Mul | Kind::Div | Kind::Plus | Kind::Min => vec![Type::Int],
+            Kind::Neq | Kind::DoubleEq => vec![Type::Int, Type::Str, Type::Bool],
+            Kind::Geq | Kind::Leq => vec![Type::Int],
+            _ => vec![Type::Invalid],
         };
 
-        if expr_type != op_expected_type {
+        if !op_expected_type.contains(&expr_type) {
             return Err(TypeError(
                 "The left and right expressions does cannot be compared with this operator."
                     .to_owned(),
             ));
         }
 
-        return Ok(op_expected_type);
+        return Ok(expr_type);
     }
 
     fn type_check_literal(&self, literal: &Literal) -> Type {

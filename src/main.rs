@@ -5,7 +5,7 @@ mod typechecker;
 
 use clap::{Parser, Subcommand};
 use parser::Parser as KarmParser;
-use std::{fs, path::PathBuf, process::exit};
+use std::{fs, process::exit};
 use typechecker::TypeChecker;
 
 #[derive(Parser)]
@@ -50,7 +50,7 @@ fn build(path: &String, cli: &Cli) {
         }
 
         // As we are here passing `ast` so its value is moved and not borrowed (but we don't want that...)
-        TypeChecker::new(ast).init();
+        println!("{:?}", TypeChecker::new(ast).init());
     } else {
         println!("This is not a valid Karm file! (.kr)");
         exit(1);
