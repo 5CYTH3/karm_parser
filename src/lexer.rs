@@ -14,7 +14,6 @@ pub struct Lexer {
     pub col_cursor: usize,
 }
 
-// impl Iterator for Lexer ?
 impl Lexer {
     pub fn new(program: String) -> Self {
         Self {

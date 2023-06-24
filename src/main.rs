@@ -49,7 +49,7 @@ fn build(path: &String, cli: &Cli) {
             println!("{:?}", ast);
         }
 
-        // As we are here passing `ast` so its value is moved and not borrowed (but we don't want that...)
+        // TODO: As we are here passing `ast` so its value is moved and not borrowed (but we don't want that...)
         println!("{:?}", TypeChecker::new(ast).init());
     } else {
         println!("This is not a valid Karm file! (.kr)");
