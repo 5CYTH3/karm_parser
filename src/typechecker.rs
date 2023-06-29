@@ -49,6 +49,12 @@ impl TypeChecker {
                 self.type_check_binary(self.type_check(lhs)?, self.type_check(rhs)?, *op)
             }
             Expr::Literal(l) => Ok(self.type_check_literal(l)),
+            Expr::If { cond, then, alter } => self.type_check_ifs(
+                self.type_check(cond)?,
+                self.type_check(then)?,
+                self.type_check(alter)?,
+            ),
+            
             _ => Ok(Type::Whatever),
         }
     }
@@ -69,6 +75,12 @@ impl TypeChecker {
             _ => vec![Type::Invalid],
         };
 
+        let op_match_type = match op {
+            Kind::Mul | Kind::Div | Kind::Plus | Kind::Min => Type::Int,
+            Kind::Neq | Kind::DoubleEq | Kind::Geq | Kind::Leq => Type::Bool,
+            _ => Type::Invalid,
+        };
+
         if !op_accepted_type.contains(&expr_type) {
             return Err(TypeError(
                 "The left hand side and right hand side expressions cannot be compared with this operator."
@@ -76,7 +88,7 @@ impl TypeChecker {
             ));
         }
 
-        return Ok(expr_type);
+        return Ok(op_match_type);
     }
 
     fn type_check_literal(&self, literal: &Literal) -> Type {
@@ -84,5 +96,19 @@ impl TypeChecker {
             Literal::Int(i) => Type::Int,
             Literal::Str(s) => Type::Str,
         }
+    }
+
+    fn type_check_ifs(&self, cond_type: Type, then: Type, alter: Type) -> Result<Type, TypeError> {
+        if cond_type != Type::Bool {
+            return Err(TypeError(
+                "Cannot use an expression that is not of type boolean as condition.".to_owned(),
+            ));
+        }
+
+        if then != alter {
+            return Err(TypeError("Cannot return two different types".to_owned()));
+        }
+
+        Ok(then)
     }
 }
