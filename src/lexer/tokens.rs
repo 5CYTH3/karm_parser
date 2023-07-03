@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Kind {
     Newline,
@@ -39,5 +41,36 @@ impl Token {
             Kind::DoubleEq | Kind::Geq | Kind::Neq | Kind::Leq => return 1,
             _ => return 0,
         }
+    }
+}
+
+impl Display for Kind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let data = match *self {
+            Kind::Arrow => "=>",
+            Kind::Colon => ":",
+            Kind::Comma => ",",
+            Kind::Div => "/",
+            Kind::DoubleColon => "::",
+            Kind::DoubleEq => "==",
+            Kind::Fn => "fn",
+            Kind::Geq => ">=",
+            Kind::Ident => "IDENT",
+            Kind::If => "if",
+            Kind::Integer => "INT",
+            Kind::LParen => "(",
+            Kind::Leq => "<=",
+            Kind::Min => "-",
+            Kind::Mul => "*",
+            Kind::Neq => "!=",
+            Kind::Plus => "+",
+            Kind::QMark => "?",
+            Kind::RParen => ")",
+            Kind::SemiColon => ";",
+            Kind::String => "STR",
+            Kind::Use => "USE",
+            _ => "",
+        };
+        write!(f, "{}", data)
     }
 }

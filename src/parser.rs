@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::process::exit;
 
 use crate::errors::SyntaxError;
@@ -36,7 +37,8 @@ pub enum Literal {
     Int(i32),
 }
 
-pub type Program = Vec<Expr>;
+#[derive(PartialEq, Debug)]
+pub struct Program(pub Vec<Expr>);
 
 pub struct Parser {
     next: Option<Token>,
@@ -61,7 +63,7 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> Program {
-        let mut program: Program = vec![];
+        let mut program: Vec<Expr> = vec![];
 
         while !self.next.is_none() {
             let exp = self.expr_def();
@@ -73,7 +75,7 @@ impl Parser {
                 }
             });
         }
-        program
+        Program(program)
     }
 
     fn expr_def(&mut self) -> Result<Expr, SyntaxError> {
@@ -297,6 +299,23 @@ impl Parser {
     }
 }
 
+impl Display for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Literal::Str(string) => write!(f, "{}", string),
+            Literal::Int(int) => write!(f, "{}", int),
+        }
+    }
+}
+
+impl Display for Program {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.iter().fold(Ok(()), |res, expr| {
+            res.and_then(|_| writeln!(f, "{:#?}", expr))
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -306,7 +325,7 @@ mod tests {
         assert_eq!(
             Parser::new(r#"fn fib :: n -> if n <= 1 ? n : fib(n - 1) + fib(n - 2);"#.to_owned())
                 .program(),
-            [Expr::Fn {
+            Program(vec![Expr::Fn {
                 ident: "fib".to_owned(),
                 params: Some(vec!["n".to_owned()]),
                 operation: Box::from(Expr::If {
@@ -336,7 +355,7 @@ mod tests {
                         }),
                     })
                 })
-            }]
+            }])
         );
     }
 }

@@ -27,7 +27,7 @@ impl TypeChecker {
     }
 
     pub fn init(&self) {
-        for expr in &self.ast {
+        for expr in &self.ast.0 {
             match self.type_check(expr) {
                 Ok(t) => continue,
                 Err(e) => {
@@ -54,7 +54,7 @@ impl TypeChecker {
                 self.type_check(then)?,
                 self.type_check(alter)?,
             ),
-            
+
             _ => Ok(Type::Whatever),
         }
     }
@@ -83,8 +83,7 @@ impl TypeChecker {
 
         if !op_accepted_type.contains(&expr_type) {
             return Err(TypeError(
-                "The left hand side and right hand side expressions cannot be compared with this operator."
-                    .to_owned(),
+                "The lhs and rhs expressions cannot be compared with this operator.".to_owned(),
             ));
         }
 
