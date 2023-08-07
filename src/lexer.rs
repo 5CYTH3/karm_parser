@@ -10,13 +10,17 @@ pub mod tokens;
 pub struct Lexer {
     program: String,
     cursor: usize,
+    pub line_cursor: usize,
+    pub col_cursor: usize,
 }
 
 impl Lexer {
     pub fn new(program: String) -> Self {
         Self {
-            program: program,
+            program,
             cursor: 0,
+            col_cursor: 1,
+            line_cursor: 1,
         }
     }
 
@@ -31,10 +35,13 @@ impl Lexer {
             return None;
         }
 
+        // Don't mess up the order or it becomes hell
         let r_set: Vec<(&str, Option<Kind>)> = vec![
             (r"^\d+", Some(Kind::Integer)), // Integers
+            (r"^\n", Some(Kind::Newline)),  // Newline
             (r"^\s+", None),                // Whitespace
             (r"^\bfn\b", Some(Kind::Fn)),
+            (r"^\buse\b", Some(Kind::Use)),
             (r"^\bif\b", Some(Kind::If)),
             (r"^::", Some(Kind::DoubleColon)),
             (r"^:", Some(Kind::Colon)),
@@ -62,8 +69,14 @@ impl Lexer {
                 Some(caps) => {
                     let capture = caps.get(0).unwrap().as_str();
                     self.cursor += capture.len();
+                    self.col_cursor += capture.len();
                     match r_s.1 {
                         Some(token_type) => {
+                            if token_type == Kind::Newline {
+                                self.col_cursor = 1;
+                                self.line_cursor += 1;
+                                return self.get_next();
+                            }
                             return Some(Token {
                                 kind: token_type,
                                 value: capture.to_string(),
