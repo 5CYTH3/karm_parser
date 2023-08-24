@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::Debug;
 use std::process::exit;
 
 use crate::errors::SyntaxError;
@@ -31,13 +31,13 @@ pub enum Expr {
     Use(String),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum Literal {
     Str(String),
     Int(i32),
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq)]
 pub struct Program(pub Vec<Expr>);
 
 pub struct Parser {
@@ -299,7 +299,7 @@ impl Parser {
     }
 }
 
-impl Display for Literal {
+impl Debug for Literal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Literal::Str(string) => write!(f, "{}", string),
@@ -308,7 +308,7 @@ impl Display for Literal {
     }
 }
 
-impl Display for Program {
+impl Debug for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.iter().fold(Ok(()), |res, expr| {
             res.and_then(|_| writeln!(f, "{:#?}", expr))

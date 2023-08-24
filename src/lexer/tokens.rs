@@ -1,6 +1,6 @@
-use std::fmt::Display;
+use std::fmt::Debug;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum Kind {
     Newline,
     DoubleColon,
@@ -44,7 +44,7 @@ impl Token {
     }
 }
 
-impl Display for Kind {
+impl Debug for Kind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let data = match *self {
             Kind::Arrow => "=>",
