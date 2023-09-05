@@ -69,9 +69,7 @@ impl TypeChecker {
         };
 
         let op_accepted_type = match op {
-            Kind::Mul | Kind::Div | Kind::Plus | Kind::Min => vec![Type::Int],
-            Kind::Neq | Kind::DoubleEq => vec![Type::Int, Type::Str, Type::Bool],
-            Kind::Geq | Kind::Leq => vec![Type::Int],
+            Kind::Mul | Kind::Div | Kind::Plus | Kind::Min => vec![Type::Int], Kind::Neq | Kind::DoubleEq => vec![Type::Int, Type::Str, Type::Bool], Kind::Geq | Kind::Leq => vec![Type::Int],
             _ => vec![Type::Invalid],
         };
 
