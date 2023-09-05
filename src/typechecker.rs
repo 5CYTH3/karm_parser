@@ -29,7 +29,7 @@ impl TypeChecker {
     pub fn init(&self) {
         for expr in &self.ast.0 {
             match self.type_check(expr) {
-                Ok(t) => continue,
+                Ok(_) => continue,
                 Err(e) => {
                     println!("{:?}", e);
                     exit(1);
@@ -41,20 +41,20 @@ impl TypeChecker {
     fn type_check(&self, expr: &Expr) -> Result<Type, TypeError> {
         match expr {
             Expr::Fn {
-                ident,
-                params,
+                ident: _,
+                params: _,
                 operation,
             } => self.type_check(&operation),
             Expr::Binary { op, lhs, rhs } => {
                 self.type_check_binary(self.type_check(lhs)?, self.type_check(rhs)?, *op)
             }
+            Expr::Var(id) => {}
             Expr::Literal(l) => Ok(self.type_check_literal(l)),
             Expr::If { cond, then, alter } => self.type_check_ifs(
                 self.type_check(cond)?,
                 self.type_check(then)?,
                 self.type_check(alter)?,
             ),
-
             _ => Ok(Type::Whatever),
         }
     }
@@ -90,8 +90,8 @@ impl TypeChecker {
 
     fn type_check_literal(&self, literal: &Literal) -> Type {
         match literal {
-            Literal::Int(i) => Type::Int,
-            Literal::Str(s) => Type::Str,
+            Literal::Int(_) => Type::Int,
+            Literal::Str(_) => Type::Str,
         }
     }
 

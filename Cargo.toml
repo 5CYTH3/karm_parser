@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 regex = "*"
 clap = { version = "4.0", features = ["derive"] }
+llvm-sys = "160"

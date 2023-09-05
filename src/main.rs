@@ -46,7 +46,7 @@ fn build(path: &String, cli: &Cli) {
         };
         let ast = KarmParser::new(program).program();
         if cli.ast == true {
-            println!("{}", ast);
+            println!("{:#?}", ast);
         }
 
         // TODO: As we are here passing `ast` so its value is moved and not borrowed (but we don't want that...)
@@ -57,4 +57,4 @@ fn build(path: &String, cli: &Cli) {
     }
 }
 
-fn shell() {}
+fn _shell() {}
