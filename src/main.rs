@@ -39,22 +39,22 @@ fn main() {
 }
 
 fn build(path: &String, cli: &Cli) {
-    if path.ends_with(".kr") {
-        let program = match fs::read_to_string(path) {
-            Ok(value) => value,
-            Err(e) => panic!("{}", e),
-        };
-        let ast = KarmParser::new(program).program();
-        if cli.ast == true {
-            println!("{:#?}", ast);
-        }
-
-        // TODO: As we are here passing `ast` so its value is moved and not borrowed (but we don't want that...)
-        println!("{:?}", TypeChecker::new(ast).init());
-    } else {
+    if !path.ends_with(".kr") {
         println!("This is not a valid Karm file! (.kr)");
         exit(1);
     }
+    
+    let program = match fs::read_to_string(path) {
+        Ok(value) => value,
+        Err(e) => panic!("{}", e),
+    };
+    let ast = KarmParser::new(program).program();
+    if cli.ast == true {
+        println!("{:#?}", ast);
+    }
+
+    // TODO: As we are here passing `ast` so its value is moved and not borrowed (but we don't want that...)
+    println!("{:?}", TypeChecker::new(ast).init());
 }
 
 fn _shell() {}
