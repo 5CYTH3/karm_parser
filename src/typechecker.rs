@@ -48,7 +48,7 @@ impl TypeChecker {
             Expr::Binary { op, lhs, rhs } => {
                 self.type_check_binary(self.type_check(lhs)?, self.type_check(rhs)?, *op)
             }
-            Expr::Var(id) => {}
+            Expr::Var(id) => todo!(),
             Expr::Literal(l) => Ok(self.type_check_literal(l)),
             Expr::If { cond, then, alter } => self.type_check_ifs(
                 self.type_check(cond)?,
@@ -57,6 +57,10 @@ impl TypeChecker {
             ),
             _ => Ok(Type::Whatever),
         }
+    }
+
+    fn type_check_fn() {
+
     }
 
     fn type_check_binary(&self, left: Type, right: Type, op: Kind) -> Result<Type, TypeError> {
@@ -69,7 +73,9 @@ impl TypeChecker {
         };
 
         let op_accepted_type = match op {
-            Kind::Mul | Kind::Div | Kind::Plus | Kind::Min => vec![Type::Int], Kind::Neq | Kind::DoubleEq => vec![Type::Int, Type::Str, Type::Bool], Kind::Geq | Kind::Leq => vec![Type::Int],
+            Kind::Mul | Kind::Div | Kind::Plus | Kind::Min => vec![Type::Int], 
+            Kind::Neq | Kind::DoubleEq => vec![Type::Int, Type::Str, Type::Bool], 
+            Kind::Geq | Kind::Leq => vec![Type::Int],
             _ => vec![Type::Invalid],
         };
 
