@@ -1,17 +1,42 @@
-use std::process::exit;
+use core::hash::Hash;
+use std::{process::exit, collections::HashSet};
+
 
 use crate::{
     lexer::tokens::Kind,
     parser::{Expr, Literal, Program},
 };
 
-#[derive(PartialEq)]
+pub fn inplace_intersection<T>(a: &mut HashSet<T>, b: &mut HashSet<T>) -> HashSet<T>
+where
+    T: Hash,
+    T: Eq,
+{
+    let c: HashSet<T> = a.iter().filter_map(|v| b.take(v)).collect();
+    
+    a.retain(|v| !c.contains(&v));
+
+    c
+}
+
+
+struct TypeScheme(Gamma, HashSet<Type>);
+
+type Gamma = HashSet<Assumption>;
+
+#[derive(PartialEq, Hash, Eq, PartialOrd, Ord)]
 pub enum Type {
     Int,
     Str,
     Bool,
     Whatever,
     Invalid,
+}
+
+#[derive(Eq, PartialEq)]
+struct Assumption {
+    name: String,
+    hypothesis: HashSet<Type>
 }
 
 pub struct TypeChecker {
@@ -38,34 +63,34 @@ impl TypeChecker {
         }
     }
 
-    fn type_check(&self, expr: &Expr) -> Result<Type, TypeError> {
+    fn type_check(&self, expr: &Expr) -> Result<TypeScheme, TypeError> {
         match expr {
             Expr::Fn {
                 ident: _,
                 params: _,
                 operation,
             } => self.type_check(&operation),
-            Expr::Binary { op, lhs, rhs } => {
-                self.type_check_binary(self.type_check(lhs)?, self.type_check(rhs)?, *op)
-            }
-            Expr::Var(id) => todo!(),
+            Expr::Binary { op, lhs, rhs } => self.type_check_binary(lhs, rhs, op),
+            Expr::Var(id) => Ok(self.type_check_args(id)),
             Expr::Literal(l) => Ok(self.type_check_literal(l)),
             Expr::If { cond, then, alter } => self.type_check_ifs(
                 self.type_check(cond)?,
                 self.type_check(then)?,
                 self.type_check(alter)?,
             ),
+            
             _ => Ok(Type::Whatever),
         }
     }
 
-    fn type_check_fn() {
+    fn type_check_binary(&self, left: &Expr, right: &Expr, op: &Kind) -> Result<TypeScheme, TypeError> {
+        let TypeScheme(t_left_in, t_left_out) = self.type_check(left)?;
+        let TypeScheme(t_right_in, t_right_out) = self.type_check(right)?;
 
-    }
+        let intersected_t_expr = inplace_intersection(&mut t_left_out, &mut t_right_out);
 
-    fn type_check_binary(&self, left: Type, right: Type, op: Kind) -> Result<Type, TypeError> {
-        let expr_type = if left == right {
-            left
+        let t_expr = if !intersected_t_expr.is_empty() {
+            intersected_t_expr
         } else {
             return Err(TypeError(
                 "Cannot compare two different types in a BinaryExpr".to_owned(),
@@ -73,10 +98,10 @@ impl TypeChecker {
         };
 
         let op_accepted_type = match op {
-            Kind::Mul | Kind::Div | Kind::Plus | Kind::Min => vec![Type::Int], 
-            Kind::Neq | Kind::DoubleEq => vec![Type::Int, Type::Str, Type::Bool], 
-            Kind::Geq | Kind::Leq => vec![Type::Int],
-            _ => vec![Type::Invalid],
+            Kind::Mul | Kind::Div | Kind::Plus | Kind::Min => HashSet::from([Type::Int]), 
+            Kind::Neq | Kind::DoubleEq => HashSet::from([Type::Int, Type::Str, Type::Bool]), 
+            Kind::Geq | Kind::Leq => HashSet::from([Type::Int]),
+            _ => HashSet::from([Type::Invalid]),
         };
 
         let op_match_type = match op {
@@ -85,13 +110,17 @@ impl TypeChecker {
             _ => Type::Invalid,
         };
 
-        if !op_accepted_type.contains(&expr_type) {
+        if !op_accepted_type.is_superset(&t_expr) {
             return Err(TypeError(
                 "The lhs and rhs expressions cannot be compared with this operator.".to_owned(),
             ));
         }
 
-        return Ok(op_match_type);
+        return Ok(TypeScheme(t_left_in.union(&t_right_in).collect(), ()));
+    }
+
+    fn type_check_args(&self, id: &String) -> Assumption {
+        Assumption { name: *id, hypothesis: HashSet::from([Type::Int, Type::Str, Type::Bool]) }
     }
 
     fn type_check_literal(&self, literal: &Literal) -> Type {
@@ -114,4 +143,5 @@ impl TypeChecker {
 
         Ok(then)
     }
+
 }
