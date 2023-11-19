@@ -1,5 +1,5 @@
 use core::hash::Hash;
-use std::{process::exit, collections::HashSet};
+use std::{process::exit, collections::BTreeSet};
 
 
 use crate::{
@@ -7,24 +7,11 @@ use crate::{
     parser::{Expr, Literal, Program},
 };
 
-pub fn inplace_intersection<T>(a: &mut HashSet<T>, b: &mut HashSet<T>) -> HashSet<T>
-where
-    T: Hash,
-    T: Eq,
-{
-    let c: HashSet<T> = a.iter().filter_map(|v| b.take(v)).collect();
-    
-    a.retain(|v| !c.contains(&v));
+struct TypeScheme(Gamma, BTreeSet<Type>);
 
-    c
-}
+type Gamma = BTreeSet<Assumption>;
 
-
-struct TypeScheme(Gamma, HashSet<Type>);
-
-type Gamma = HashSet<Assumption>;
-
-#[derive(PartialEq, Hash, Eq, PartialOrd, Ord)]
+#[derive(PartialEq, Hash, Eq, PartialOrd, Ord, Clone)]
 pub enum Type {
     Int,
     Str,
@@ -33,10 +20,10 @@ pub enum Type {
     Invalid,
 }
 
-#[derive(Eq, PartialEq)]
+#[derive(Eq, Ord, PartialEq, PartialOrd, Clone)]
 struct Assumption {
     name: String,
-    hypothesis: HashSet<Type>
+    hypothesis: BTreeSet<Type>
 }
 
 pub struct TypeChecker {
@@ -87,8 +74,10 @@ impl TypeChecker {
         let TypeScheme(t_left_in, t_left_out) = self.type_check(left)?;
         let TypeScheme(t_right_in, t_right_out) = self.type_check(right)?;
 
-        let intersected_t_expr = inplace_intersection(&mut t_left_out, &mut t_right_out);
+        // Get the possible types for the output of the function
+        let intersected_t_expr: BTreeSet<Assumption> = t_left_in.intersection(&t_right_in).cloned().collect();
 
+        // Check if there is no common possible types between the two expressions
         let t_expr = if !intersected_t_expr.is_empty() {
             intersected_t_expr
         } else {
@@ -97,13 +86,15 @@ impl TypeChecker {
             ));
         };
 
+        // The types accepted by each ops
         let op_accepted_type = match op {
-            Kind::Mul | Kind::Div | Kind::Plus | Kind::Min => HashSet::from([Type::Int]), 
-            Kind::Neq | Kind::DoubleEq => HashSet::from([Type::Int, Type::Str, Type::Bool]), 
-            Kind::Geq | Kind::Leq => HashSet::from([Type::Int]),
-            _ => HashSet::from([Type::Invalid]),
+            Kind::Mul | Kind::Div | Kind::Plus | Kind::Min => BTreeSet::from([Type::Int]), 
+            Kind::Neq | Kind::DoubleEq => BTreeSet::from([Type::Int, Type::Str, Type::Bool]), 
+            Kind::Geq | Kind::Leq => BTreeSet::from([Type::Int]),
+            _ => BTreeSet::from([Type::Invalid]),
         };
 
+        // The type of the expression based on the op type
         let op_match_type = match op {
             Kind::Mul | Kind::Div | Kind::Plus | Kind::Min => Type::Int,
             Kind::Neq | Kind::DoubleEq | Kind::Geq | Kind::Leq => Type::Bool,
@@ -116,14 +107,16 @@ impl TypeChecker {
             ));
         }
 
-        return Ok(TypeScheme(t_left_in.union(&t_right_in).collect(), ()));
+        let expr_in: BTreeSet<Assumption> = t_left_in.union(&t_right_in).cloned().collect();
+
+        return Ok(TypeScheme(expr_in, BTreeSet::from([op_match_type])));
     }
 
     fn type_check_args(&self, id: &String) -> Assumption {
-        Assumption { name: *id, hypothesis: HashSet::from([Type::Int, Type::Str, Type::Bool]) }
+        Assumption { name: *id, hypothesis: BTreeSet::from([Type::Int, Type::Str, Type::Bool]) }
     }
 
-    fn type_check_literal(&self, literal: &Literal) -> Type {
+    fn type_check_literal(&self, literal: &Literal) -> TypeScheme {
         match literal {
             Literal::Int(_) => Type::Int,
             Literal::Str(_) => Type::Str,
