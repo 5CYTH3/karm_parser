@@ -11,7 +11,7 @@ struct TypeScheme(Gamma, BTreeSet<Type>);
 
 type Gamma = BTreeSet<Assumption>;
 
-#[derive(PartialEq, Hash, Eq, PartialOrd, Ord, Clone)]
+#[derive(PartialEq, Hash, Eq, PartialOrd, Ord, Clone, Debug)]
 pub enum Type {
     Int,
     Str,
@@ -20,10 +20,14 @@ pub enum Type {
     Invalid,
 }
 
-#[derive(Eq, Ord, PartialEq, PartialOrd, Clone)]
+#[derive(Eq, Ord, PartialEq, PartialOrd, Clone, Debug)]
 struct Assumption {
-    name: String,
-    hypothesis: BTreeSet<Type>
+    pub name: String,
+    pub hypothesis: BTreeSet<Type>
+}
+
+impl Assumption {
+    
 }
 
 pub struct TypeChecker {
@@ -53,38 +57,46 @@ impl TypeChecker {
     fn type_check(&self, expr: &Expr) -> Result<TypeScheme, TypeError> {
         match expr {
             Expr::Fn {
-                ident: _,
+                ident: id,
                 params: _,
                 operation,
-            } => self.type_check(&operation),
+            } => self.type_check_function(id, &operation),
             Expr::Binary { op, lhs, rhs } => self.type_check_binary(lhs, rhs, op),
-            Expr::Var(id) => Ok(self.type_check_args(id)),
-            Expr::Literal(l) => Ok(self.type_check_literal(l)),
+            Expr::Var(id) => self.type_check_args(id),
+            Expr::Literal(l) => self.type_check_literal(l),
             Expr::If { cond, then, alter } => self.type_check_ifs(
-                self.type_check(cond)?,
-                self.type_check(then)?,
-                self.type_check(alter)?,
+                cond,
+                then,
+                alter,
             ),
-            
-            _ => Ok(Type::Whatever),
+
+            _ => Ok(TypeScheme(BTreeSet::new(), BTreeSet::new())),
         }
+    }
+
+    fn type_check_function(&self, ident: &String, body: &Expr) -> Result<TypeScheme, TypeError> {
+        let TypeScheme(body_in_type, body_out_type) = self.type_check(body)?;
+        println!("Args of the func: {:?}\n Return type: {:?}", body_in_type, body_out_type);
+        Ok(TypeScheme(body_in_type, body_out_type))
     }
 
     fn type_check_binary(&self, left: &Expr, right: &Expr, op: &Kind) -> Result<TypeScheme, TypeError> {
         let TypeScheme(t_left_in, t_left_out) = self.type_check(left)?;
         let TypeScheme(t_right_in, t_right_out) = self.type_check(right)?;
 
-        // Get the possible types for the output of the function
-        let intersected_t_expr: BTreeSet<Assumption> = t_left_in.intersection(&t_right_in).cloned().collect();
-
+        // Get the possible types for the output of the expression
+        let exp_out_common_type: BTreeSet<Type> = t_left_out.intersection(&t_right_out).cloned().collect();
+        
         // Check if there is no common possible types between the two expressions
-        let t_expr = if !intersected_t_expr.is_empty() {
-            intersected_t_expr
-        } else {
+        if exp_out_common_type.is_empty() {
             return Err(TypeError(
                 "Cannot compare two different types in a BinaryExpr".to_owned(),
             ));
-        };
+        }
+
+
+        // Get the possible types for the arguments of the expression
+        let exp_in_common_hypothesis_type: BTreeSet<Assumption> = self.intersect_assumption_types(&t_left_in, &t_right_in); 
 
         // The types accepted by each ops
         let op_accepted_type = match op {
@@ -101,40 +113,76 @@ impl TypeChecker {
             _ => Type::Invalid,
         };
 
-        if !op_accepted_type.is_superset(&t_expr) {
+        if !op_accepted_type.is_superset(&exp_out_common_type) {
             return Err(TypeError(
                 "The lhs and rhs expressions cannot be compared with this operator.".to_owned(),
             ));
         }
 
-        let expr_in: BTreeSet<Assumption> = t_left_in.union(&t_right_in).cloned().collect();
-
-        return Ok(TypeScheme(expr_in, BTreeSet::from([op_match_type])));
+        println!("Type of the binexp: {:?}\n Lhs has type {:?}\n Rhs has type: {:?}\n", exp_out_common_type, t_left_out, t_right_out);
+        
+        return Ok(TypeScheme(exp_in_common_hypothesis_type, BTreeSet::from([op_match_type])));
     }
 
-    fn type_check_args(&self, id: &String) -> Assumption {
-        Assumption { name: *id, hypothesis: BTreeSet::from([Type::Int, Type::Str, Type::Bool]) }
+    fn type_check_args(&self, id: &String) -> Result<TypeScheme, TypeError> {
+        Ok(TypeScheme(
+            BTreeSet::from([
+                Assumption { name: id.clone(), hypothesis: BTreeSet::from([Type::Int, Type::Str, Type::Bool]) }
+            ]),
+            BTreeSet::from([Type::Int, Type::Str, Type::Bool])
+        ))
     }
 
-    fn type_check_literal(&self, literal: &Literal) -> TypeScheme {
-        match literal {
-            Literal::Int(_) => Type::Int,
-            Literal::Str(_) => Type::Str,
-        }
+    fn type_check_literal(&self, literal: &Literal) -> Result<TypeScheme, TypeError> {
+        Ok(match literal {
+            Literal::Int(_) => TypeScheme(BTreeSet::new(), BTreeSet::from([Type::Int])),
+            Literal::Str(_) => TypeScheme(BTreeSet::new(), BTreeSet::from([Type::Str])),
+        })
     }
 
-    fn type_check_ifs(&self, cond_type: Type, then: Type, alter: Type) -> Result<Type, TypeError> {
-        if cond_type != Type::Bool {
+    fn type_check_ifs(&self, cond_expr: &Expr, then_expr: &Expr, alter_expr: &Expr) -> Result<TypeScheme, TypeError> {
+        let TypeScheme(cond_in_type, cond_out_type) = self.type_check(cond_expr)?;
+        let TypeScheme(then_in_type, then_out_type) = self.type_check(then_expr)?;
+        let TypeScheme(alter_in_type, alter_out_type) = self.type_check(alter_expr)?;
+        
+        if cond_out_type != BTreeSet::from([Type::Bool]) {
             return Err(TypeError(
                 "Cannot use an expression that is not of type boolean as condition.".to_owned(),
             ));
         }
 
-        if then != alter {
+        if then_out_type != alter_out_type {
             return Err(TypeError("Cannot return two different types".to_owned()));
         }
 
-        Ok(then)
+        let intersected_in_types: BTreeSet<Assumption> = self.intersect_assumption_types(&cond_in_type, &then_in_type); 
+        let twice_intersected_in_types: BTreeSet<Assumption> = self.intersect_assumption_types(&intersected_in_types, &alter_in_type);
+
+        Ok(TypeScheme(twice_intersected_in_types, alter_out_type))
+    }
+
+    fn intersect_assumption_types(&self, left: &BTreeSet<Assumption>, right: &BTreeSet<Assumption>) -> BTreeSet<Assumption> {
+        let mut set = BTreeSet::new();    
+        for i in left {
+            println!("{:?}", left);
+            for j in right {
+                if i.hypothesis.is_empty()  {
+                    return 
+                }
+                if i.name == j.name {
+                    let hypothesis = i.hypothesis.intersection(&j.hypothesis).cloned().collect();
+                    if hypothesis.is_empty() {
+                        return Err(TypeError(""));
+                    }
+                    set.insert(Assumption { name: i.name.clone(), hypothesis });
+                } else {
+                    set.insert(i.clone());
+                    set.insert(j.clone());
+                }
+            }
+        }
+        println!("Set: {:?}", set);
+        set
     }
 
 }
