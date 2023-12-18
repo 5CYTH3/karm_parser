@@ -13,3 +13,7 @@ impl Display for SyntaxError {
         )
     }
 }
+
+#[derive(Debug)]
+pub struct TypeError(pub String);
+

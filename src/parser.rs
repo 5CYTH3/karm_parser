@@ -96,10 +96,10 @@ impl Parser {
             }
         };
         let expr = match next_token.kind {
-            Kind::Fn => self.fun_expr(),
+            Kind::Lam => self.fun_expr(),
             Kind::Use => self.use_expr(),
             _ => Err(SyntaxError(
-                vec![Kind::Fn],
+                vec![Kind::Lam],
                 Some(next_token.kind.to_owned()),
                 (self.lexer.col_cursor, self.lexer.line_cursor),
             )),
@@ -115,7 +115,7 @@ impl Parser {
 
     // ? No more function nesting (we call if_exprs and not expr everywhere)
     fn fun_expr(&mut self) -> Result<Expr, SyntaxError> {
-        self.eat(&mut Kind::Fn)?;
+        self.eat(&mut Kind::Lam)?;
         let id = self.eat(&Kind::Ident)?.value;
 
         // Check if the function has parameters (if it has the :: operator, it has parameters).

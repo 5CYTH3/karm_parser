@@ -1,6 +1,6 @@
 use core::hash::Hash;
 use std::{process::exit, collections::BTreeSet};
-
+use crate::errors::TypeError;
 
 use crate::{
     lexer::tokens::Kind,
@@ -33,9 +33,6 @@ impl Assumption {
 pub struct TypeChecker {
     ast: Program,
 }
-
-#[derive(Debug)]
-struct TypeError(String);
 
 impl TypeChecker {
     pub fn new(ast: Program) -> Self {
