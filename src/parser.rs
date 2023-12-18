@@ -13,11 +13,11 @@ pub enum Expr {
         rhs: Box<Expr>,
     },
     Literal(Literal),
-    FnCall {
+    LamCall {
         ident: String,
         params: Option<Vec<Expr>>,
     },
-    Fn {
+    LamDef {
         ident: String,
         params: Option<Vec<String>>,
         operation: Box<Expr>,
@@ -29,6 +29,11 @@ pub enum Expr {
         alter: Box<Expr>,
     },
     Use(String),
+}
+
+pub enum LamType {
+    Infix,
+    Prefix,
 }
 
 #[derive(Clone, PartialEq)]
@@ -130,7 +135,7 @@ impl Parser {
             }
 
             self.eat(&Kind::Arrow)?;
-            return Ok(Expr::Fn {
+            return Ok(Expr::LamDef {
                 ident: id,
                 params: Some(params),
                 operation: Box::new(self.if_expr()?),
@@ -140,7 +145,7 @@ impl Parser {
         // If the function has no parameters, return a Expr::Fn with `None` as params value.
         self.eat(&Kind::Arrow)?;
 
-        Ok(Expr::Fn {
+        Ok(Expr::LamDef {
             ident: id,
             params: None,
             operation: Box::new(self.if_expr()?),
@@ -261,7 +266,7 @@ impl Parser {
                 true => None,
                 false => Some(_params),
             };
-            return Ok(Expr::FnCall {
+            return Ok(Expr::LamCall {
                 ident: id.value,
                 params,
             });
@@ -325,7 +330,7 @@ mod tests {
         assert_eq!(
             Parser::new(r#"fn fib :: n -> if n <= 1 ? n : fib(n - 1) + fib(n - 2);"#.to_owned())
                 .program(),
-            Program(vec![Expr::Fn {
+            Program(vec![Expr::LamDef {
                 ident: "fib".to_owned(),
                 params: Some(vec!["n".to_owned()]),
                 operation: Box::from(Expr::If {
@@ -337,7 +342,7 @@ mod tests {
                     then: Box::from(Expr::Var("n".to_owned())),
                     alter: Box::from(Expr::Binary {
                         op: Kind::Plus,
-                        lhs: Box::from(Expr::FnCall {
+                        lhs: Box::from(Expr::LamCall {
                             ident: "fib".to_owned(),
                             params: Some(vec![Expr::Binary {
                                 op: Kind::Min,
@@ -345,7 +350,7 @@ mod tests {
                                 rhs: Box::from(Expr::Literal(Literal::Int(1)))
                             }])
                         }),
-                        rhs: Box::from(Expr::FnCall {
+                        rhs: Box::from(Expr::LamCall {
                             ident: "fib".to_owned(),
                             params: Some(vec![Expr::Binary {
                                 op: Kind::Min,
