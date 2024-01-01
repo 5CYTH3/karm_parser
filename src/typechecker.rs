@@ -55,6 +55,7 @@ impl TypeChecker {
                 self.type_check(then)?,
                 self.type_check(alter)?,
             ),
+
             _ => Ok(Type::Whatever),
         }
     }
