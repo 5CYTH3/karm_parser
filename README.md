@@ -6,23 +6,19 @@ Talking about syntax, here is the BNF of the language:
 ```html
 <program> ::= <expr>*
 
-<expr> ::= <fn> ';'
+<expr> ::= <lam> ';'
 
-<fn> ::= 'fn' <id> ['::' (<id> ',')*] '->' <content_expr>
+<lam> ::= 'fn' <id> ['::' (<id> ',')*] '->' <content-expr>
 
-<content_expr> ::= (<if> | <binary> | <term>)
+<content-expr> ::= (<if> | <lam-call> | <term>)
 
-<if> ::= 'if' <binary> '?' <content_expr> ':' <content_expr>
+<if> ::= 'if' <lam-call> '?' <content-expr> ':' <content-expr>
 
-<binary> ::= (<binary> | <term>) <op> ( <binary> | <term>)
-
-<op> ::= '+' | '-' | '/' | '*'
-
-<term> ::= (<literal> | <fn_call> | <var>)
+<term> ::= (<literal> | <lam-call> | <var>)
 
 <literal> ::= ('+w/' | '+d/')
 
-<fn_call> ::= <id> '(' [<content_expr>*] ')'
+<lam-call> ::= <id> '(' [<content-expr>*] ')'
 
 <var> ::= <id>
 ``` 
