@@ -53,12 +53,12 @@ impl TypeChecker {
 
     fn type_check(&self, expr: &Expr) -> Result<TypeScheme, TypeError> {
         match expr {
-            Expr::LamDef {
+            Expr::Fn {
                 ident: id,
                 params: _,
-                style: _,
                 operation,
             } => self.type_check_function(id, &operation),
+            Expr::Binary { op, lhs, rhs } => self.type_check_binary(lhs, rhs, op),
             Expr::Var(id) => self.type_check_args(id),
             Expr::Literal(l) => self.type_check_literal(l),
             Expr::If { cond, then, alter } => self.type_check_ifs(
@@ -75,6 +75,50 @@ impl TypeChecker {
         let TypeScheme(body_in_type, body_out_type) = self.type_check(body)?;
         println!("Args of the func: {:?}\n Return type: {:?}", body_in_type, body_out_type);
         Ok(TypeScheme(body_in_type, body_out_type))
+    }
+
+    fn type_check_binary(&self, left: &Expr, right: &Expr, op: &Kind) -> Result<TypeScheme, TypeError> {
+        let TypeScheme(t_left_in, t_left_out) = self.type_check(left)?;
+        let TypeScheme(t_right_in, t_right_out) = self.type_check(right)?;
+
+        // Get the possible types for the output of the expression
+        let exp_out_common_type: BTreeSet<Type> = t_left_out.intersection(&t_right_out).cloned().collect();
+        
+        // Check if there is no common possible types between the two expressions
+        if exp_out_common_type.is_empty() {
+            return Err(TypeError(
+                "Cannot compare two different types in a BinaryExpr".to_owned(),
+            ));
+        }
+
+
+        // Get the possible types for the arguments of the expression
+        let exp_in_common_hypothesis_type: BTreeSet<Assumption> = self.intersect_assumption_types(&t_left_in, &t_right_in); 
+
+        // The types accepted by each ops
+        let op_accepted_type = match op {
+            Kind::Mul | Kind::Div | Kind::Plus | Kind::Min => BTreeSet::from([Type::Int]), 
+            Kind::Neq | Kind::DoubleEq => BTreeSet::from([Type::Int, Type::Str, Type::Bool]), 
+            Kind::Geq | Kind::Leq => BTreeSet::from([Type::Int]),
+            _ => BTreeSet::from([Type::Invalid]),
+        };
+
+        // The type of the expression based on the op type
+        let op_match_type = match op {
+            Kind::Mul | Kind::Div | Kind::Plus | Kind::Min => Type::Int,
+            Kind::Neq | Kind::DoubleEq | Kind::Geq | Kind::Leq => Type::Bool,
+            _ => Type::Invalid,
+        };
+
+        if !op_accepted_type.is_superset(&exp_out_common_type) {
+            return Err(TypeError(
+                "The lhs and rhs expressions cannot be compared with this operator.".to_owned(),
+            ));
+        }
+
+        println!("Type of the binexp: {:?}\n Lhs has type {:?}\n Rhs has type: {:?}\n", exp_out_common_type, t_left_out, t_right_out);
+        
+        return Ok(TypeScheme(exp_in_common_hypothesis_type, BTreeSet::from([op_match_type])));
     }
 
     fn type_check_args(&self, id: &String) -> Result<TypeScheme, TypeError> {
@@ -114,7 +158,6 @@ impl TypeChecker {
         Ok(TypeScheme(twice_intersected_in_types, alter_out_type))
     }
 
-    /* 
     fn intersect_assumption_types(&self, left: &BTreeSet<Assumption>, right: &BTreeSet<Assumption>) -> BTreeSet<Assumption> {
         let mut set = BTreeSet::new();    
         for i in left {
@@ -138,6 +181,5 @@ impl TypeChecker {
         println!("Set: {:?}", set);
         set
     }
-    */
 
 }
