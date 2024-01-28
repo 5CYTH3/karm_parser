@@ -34,7 +34,7 @@ fn main() {
 
     match &cli.command {
         Some(Commands::Build { file }) => build(file, &cli),
-        Some(Commands::Shell {}) => {}
+        Some(Commands::Shell {}) => _shell(),
         None => {}
     }
 }
@@ -58,4 +58,7 @@ fn build(path: &String, cli: &Cli) {
     }
 }
 
-fn _shell() {}
+fn _shell() {
+    let session = repl::Repl::new(">>>".to_string(), "...".to_string(), Vec::new());
+    session.run();
+}
