@@ -31,6 +31,16 @@ pub struct Repl {
     was_newline: bool,
 }
 
+fn newline(stdout: &mut Stdout) {
+    let height = termion::terminal_size().unwrap().1;
+    let cursor_y = stdout.cursor_pos().unwrap().1;
+    if cursor_y >= height {
+        write!(stdout, "{}", termion::scroll::Up(1)).unwrap();
+    }
+    let cursor_y = stdout.cursor_pos().unwrap().1;
+    write!(stdout, "{}", termion::cursor::Goto(1, cursor_y + 1)).unwrap();
+}
+
 impl Repl {
     pub fn new(prompt1: String, prompt2: String, history: Vec<String>) -> Self {
         Repl {
@@ -75,20 +85,17 @@ impl Repl {
     }
     fn show(&self, stdout: &mut Stdout) {
         if self.was_newline {
-            let cursor_y = stdout.cursor_pos().unwrap().1;
-            write!(stdout, "{}", termion::cursor::Goto(1, cursor_y + 1)).unwrap();
+            newline(stdout);
         }
         if let Some(result) = &self.command_result {
             for c in result.chars() {
                 if c == '\n' {
-                    let cursor_y = stdout.cursor_pos().unwrap().1;
-                    write!(stdout, "{}", termion::cursor::Goto(1, cursor_y + 1)).unwrap();
+                    newline(stdout);
                 } else {
                     write!(stdout, "{c}").unwrap();
                 }
             }
-            let cursor_y = stdout.cursor_pos().unwrap().1;
-            write!(stdout, "{}", termion::cursor::Goto(1, cursor_y + 1)).unwrap();
+            newline(stdout);
         }
         let cursor_y = stdout.cursor_pos().unwrap().1;
         write!(
