@@ -86,6 +86,14 @@ impl Repl {
                     self.current_line.remove(self.cursor_idx);
                 }
             }
+            Key::Left => {
+                self.cursor_idx = self.cursor_idx.checked_sub(1).unwrap_or(self.cursor_idx)
+            }
+            Key::Right => {
+                if self.cursor_idx < self.current_line.len() {
+                    self.cursor_idx += 1;
+                }
+            }
             _ => todo!(),
         }
     }
@@ -111,12 +119,18 @@ impl Repl {
             termion::cursor::Goto(1, cursor_y)
         )
         .unwrap();
-        if self.hist_idx == self.first_command_line {
-            write!(stdout, "{}", self.prompt1).unwrap();
+        let prompt = if self.hist_idx == self.first_command_line {
+            &self.prompt1
         } else {
-            write!(stdout, "{}", self.prompt2).unwrap();
-        }
-        write!(stdout, "{}", self.current_line).unwrap();
+            &self.prompt2
+        };
+        write!(
+            stdout,
+            "{prompt}{}{}",
+            self.current_line,
+            termion::cursor::Goto((prompt.len() + self.cursor_idx + 1) as u16, cursor_y)
+        )
+        .unwrap();
         stdout.flush().unwrap();
     }
     pub fn run(mut self) {
