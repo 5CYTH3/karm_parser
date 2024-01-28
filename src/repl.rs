@@ -29,6 +29,9 @@ pub struct Repl {
     command_result: Option<String>,
     /// true if the last event resulted in a newline
     was_newline: bool,
+    /// true if the previous line has been entered without a ';' at the end of it,
+    /// false otherwise
+    tbc: bool,
 }
 
 fn newline(stdout: &mut Stdout) {
@@ -50,6 +53,7 @@ impl Repl {
             cursor_idx: 0,
             command_result: None,
             was_newline: false,
+            tbc: false,
             prompt1,
             prompt2,
             history,
@@ -63,15 +67,16 @@ impl Repl {
                 if c == '\n' {
                     if !self.current_line.is_empty() {
                         self.was_newline = true;
-                        self.hist_idx += 1;
                         self.cursor_idx = 0;
                         self.history.push(self.current_line.clone());
+                        self.hist_idx = self.history.len();
+                        self.tbc = true;
                         // The current line ends a command
                         if self.current_line.ends_with(";") {
-                            let full_command =
-                                self.history[self.first_command_line..self.hist_idx].join("\n");
+                            let full_command = self.history[self.first_command_line..].join("\n");
                             self.command_result = Some(format!("TODO: execute {full_command}"));
                             self.first_command_line = self.hist_idx;
+                            self.tbc = false;
                         }
                         self.current_line.clear()
                     }
@@ -92,6 +97,18 @@ impl Repl {
             Key::Right => {
                 if self.cursor_idx < self.current_line.len() {
                     self.cursor_idx += 1;
+                }
+            }
+            Key::Up => {
+                if let Some(nhi) = self.hist_idx.checked_sub(1) {
+                    self.hist_idx = nhi;
+                    self.current_line = self.history[self.hist_idx].clone();
+                }
+            }
+            Key::Down => {
+                if self.hist_idx + 1 < self.history.len() {
+                    self.hist_idx += 1;
+                    self.current_line = self.history[self.hist_idx].clone();
                 }
             }
             _ => todo!(),
@@ -119,10 +136,10 @@ impl Repl {
             termion::cursor::Goto(1, cursor_y)
         )
         .unwrap();
-        let prompt = if self.hist_idx == self.first_command_line {
-            &self.prompt1
-        } else {
+        let prompt = if self.tbc {
             &self.prompt2
+        } else {
+            &self.prompt1
         };
         write!(
             stdout,
