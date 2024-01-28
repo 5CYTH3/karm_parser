@@ -1,6 +1,7 @@
 mod errors;
 mod lexer;
 mod parser;
+mod repl;
 // mod typechecker;
 
 use clap::{Parser, Subcommand};
