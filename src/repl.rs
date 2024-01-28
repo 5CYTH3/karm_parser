@@ -80,6 +80,12 @@ impl Repl {
                     self.cursor_idx += 1;
                 }
             }
+            Key::Backspace => {
+                if self.cursor_idx != 0 {
+                    self.cursor_idx -= 1;
+                    self.current_line.remove(self.cursor_idx);
+                }
+            }
             _ => todo!(),
         }
     }
