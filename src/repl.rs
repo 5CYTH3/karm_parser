@@ -32,6 +32,8 @@ pub struct Repl {
     /// true if the previous line has been entered without a ';' at the end of it,
     /// false otherwise
     tbc: bool,
+    /// false if the repl should exit, true otherwise
+    running: bool,
 }
 
 fn newline(stdout: &mut Stdout) {
@@ -54,6 +56,7 @@ impl Repl {
             command_result: None,
             was_newline: false,
             tbc: false,
+            running: true,
             prompt1,
             prompt2,
             history,
@@ -111,7 +114,8 @@ impl Repl {
                     self.current_line = self.history[self.hist_idx].clone();
                 }
             }
-            _ => todo!(),
+            Key::Ctrl('c') | Key::Ctrl('d') => self.running = false,
+            _ => (),
         }
     }
     fn show(&self, stdout: &mut Stdout) {
@@ -156,6 +160,9 @@ impl Repl {
         self.show(&mut stdout);
         for c in stdin.keys() {
             self.update(c.unwrap());
+            if !self.running {
+                break;
+            }
             self.show(&mut stdout);
         }
     }
