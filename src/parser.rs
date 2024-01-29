@@ -6,7 +6,7 @@ use crate::lexer::tokens::{Kind, Token};
 use crate::lexer::Lexer;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Expr { 
+pub enum Expr {
     Literal(Literal),
     LamCall {
         ident: String,
@@ -120,7 +120,7 @@ impl Parser {
     // ? No more function nesting (we call if_exprs and not expr everywhere)
     fn lam_expr(&mut self) -> Result<Expr, SyntaxError> {
         self.eat(&mut Kind::Lam)?;
-        let id = self.eat(&Kind::Ident)?.value; 
+        let id = self.eat(&Kind::Ident)?.value;
         let mut style = LamStyle::Prefix;
         if self.next_token().kind == Kind::Bar {
             self.eat(&Kind::Bar)?;
@@ -203,7 +203,7 @@ impl Parser {
             left = Expr::LamCall {
                 ident: op,
                 style: LamStyle::Infix,
-                params: Some(vec![left, right])
+                params: Some(vec![left, right]),
             };
         }
         Ok(left)
@@ -221,7 +221,7 @@ impl Parser {
             left = Expr::LamCall {
                 ident: op,
                 style: LamStyle::Infix,
-                params: Some(vec![left, right])
+                params: Some(vec![left, right]),
             };
         }
         Ok(left)
@@ -236,7 +236,7 @@ impl Parser {
             left = Expr::LamCall {
                 ident: op,
                 style: LamStyle::Infix,
-                params: Some(vec![left, right])
+                params: Some(vec![left, right]),
             };
         }
         Ok(left)
@@ -345,34 +345,41 @@ mod tests {
                     cond: Box::from(Expr::LamCall {
                         ident: "<=".to_owned(),
                         style: LamStyle::Infix,
-                        params: Some(vec![Expr::Var("n".to_owned()), Expr::Literal(Literal::Int(1))])
+                        params: Some(vec![
+                            Expr::Var("n".to_owned()),
+                            Expr::Literal(Literal::Int(1))
+                        ])
                     }),
                     then: Box::from(Expr::Var("n".to_owned())),
                     alter: Box::from(Expr::LamCall {
                         ident: "+".to_owned(),
                         style: LamStyle::Infix,
-                        params: Some(
-                            vec![
-                                Expr::LamCall {
-                                    ident: "fib".to_owned(),
-                                    style: LamStyle::Prefix,
-                                    params: Some(vec![Expr::LamCall {
-                                        ident: "-".to_owned(),
-                                        style: LamStyle::Infix,
-                                        params: Some(vec![Expr::Var("n".to_owned()), Expr::Literal(Literal::Int(1))])
-                                    }])
-                                },
-                                Expr::LamCall {
-                                    ident: "fib".to_owned(),
-                                    style: LamStyle::Prefix,
-                                    params: Some(vec![Expr::LamCall {
-                                        ident: "-".to_owned(), 
-                                        style: LamStyle::Infix,
-                                        params: Some(vec![Expr::Var("n".to_owned()), Expr::Literal(Literal::Int(2))])
-                                    }])
-                                }
-                            ]
-                        ),
+                        params: Some(vec![
+                            Expr::LamCall {
+                                ident: "fib".to_owned(),
+                                style: LamStyle::Prefix,
+                                params: Some(vec![Expr::LamCall {
+                                    ident: "-".to_owned(),
+                                    style: LamStyle::Infix,
+                                    params: Some(vec![
+                                        Expr::Var("n".to_owned()),
+                                        Expr::Literal(Literal::Int(1))
+                                    ])
+                                }])
+                            },
+                            Expr::LamCall {
+                                ident: "fib".to_owned(),
+                                style: LamStyle::Prefix,
+                                params: Some(vec![Expr::LamCall {
+                                    ident: "-".to_owned(),
+                                    style: LamStyle::Infix,
+                                    params: Some(vec![
+                                        Expr::Var("n".to_owned()),
+                                        Expr::Literal(Literal::Int(2))
+                                    ])
+                                }])
+                            }
+                        ]),
                     })
                 })
             }])

@@ -1,3 +1,4 @@
+use crate::parser;
 use std::io::{stdin, stdout, Stdout, Write};
 use termion::cursor::DetectCursorPos;
 use termion::event::Key;
@@ -77,7 +78,10 @@ impl Repl {
                         // The current line ends a command
                         if self.current_line.ends_with(";") {
                             let full_command = self.history[self.first_command_line..].join("\n");
-                            self.command_result = Some(Ok(format!("TODO: execute {full_command}")));
+                            self.command_result = Some(Ok(format!(
+                                "{:#?}",
+                                parser::Parser::new(full_command).parse()
+                            )));
                             self.first_command_line = self.hist_idx;
                             self.tbc = false;
                         }
