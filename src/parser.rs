@@ -67,7 +67,7 @@ impl Parser {
 
     pub fn parse(&mut self) -> Result<Program, SyntaxError> {
         let mut ast: Vec<Expr> = Vec::new();
-        while !self.next.is_none() {
+        while self.next.is_some() {
             let exp = self.expr_def();
             ast.push(exp?);
         }
@@ -76,7 +76,7 @@ impl Parser {
 
     fn expr_def(&mut self) -> Result<Expr, SyntaxError> {
         let expr = self.expr();
-        self.eat(&mut Kind::SemiColon)?;
+        self.eat(&Kind::SemiColon)?;
         expr
     }
 
@@ -92,7 +92,7 @@ impl Parser {
             }
         };
 
-        let expr = match next_token.kind {
+        match next_token.kind {
             Kind::Lam => self.lam_expr(),
             Kind::Use => self.use_expr(),
             _ => Err(SyntaxError(
@@ -100,9 +100,7 @@ impl Parser {
                 Some(next_token.kind.to_owned()),
                 (self.lexer.col_cursor, self.lexer.line_cursor),
             )),
-        };
-
-        expr
+        }
     }
 
     fn use_expr(&mut self) -> Result<Expr, SyntaxError> {
@@ -113,7 +111,7 @@ impl Parser {
 
     // ? No more function nesting (we call if_exprs and not expr everywhere)
     fn lam_expr(&mut self) -> Result<Expr, SyntaxError> {
-        self.eat(&mut Kind::Lam)?;
+        self.eat(&Kind::Lam)?;
         let id = self.eat(&Kind::Ident)?.value;
         let mut style = LamStyle::Prefix;
         if self.next_token().kind == Kind::Bar {
@@ -124,7 +122,7 @@ impl Parser {
         // Check if the function has parameters (if it has the :: operator, it has parameters).
         if self.next_token().kind == Kind::DoubleColon {
             let mut params: Vec<String> = vec![];
-            self.eat(&mut Kind::DoubleColon)?;
+            self.eat(&Kind::DoubleColon)?;
             while self.next_token().kind != Kind::Arrow {
                 params.push(self.eat(&Kind::Ident)?.value);
                 if self.next_token().kind == Kind::Comma {
@@ -316,9 +314,9 @@ impl Debug for Literal {
 
 impl Debug for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.iter().fold(Ok(()), |res, expr| {
-            res.and_then(|_| writeln!(f, "{:#?}", expr))
-        })
+        self.0
+            .iter()
+            .try_fold((), |_, expr| writeln!(f, "{:#?}", expr))
     }
 }
 

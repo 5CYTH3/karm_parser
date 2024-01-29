@@ -52,7 +52,7 @@ fn build(path: &String, cli: &Cli) {
                 exit(1)
             }
         };
-        if cli.ast == true {
+        if cli.ast {
             println!("{:#?}", ast);
         }
 
