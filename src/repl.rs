@@ -26,7 +26,7 @@ pub struct Repl {
     cursor_idx: usize,
     /// The value will be *Some(x)*, where x is the result of the previous command,
     /// **if the last line was the end of a command**
-    command_result: Option<String>,
+    command_result: Option<Result<String, String>>,
     /// true if the last event resulted in a newline
     was_newline: bool,
     /// true if the previous line has been entered without a ';' at the end of it,
@@ -77,7 +77,7 @@ impl Repl {
                         // The current line ends a command
                         if self.current_line.ends_with(";") {
                             let full_command = self.history[self.first_command_line..].join("\n");
-                            self.command_result = Some(format!("TODO: execute {full_command}"));
+                            self.command_result = Some(Ok(format!("TODO: execute {full_command}")));
                             self.first_command_line = self.hist_idx;
                             self.tbc = false;
                         }
@@ -123,6 +123,10 @@ impl Repl {
             newline(stdout);
         }
         if let Some(result) = &self.command_result {
+            let result = result
+                .as_ref()
+                .map(|x| x.clone())
+                .unwrap_or_else(|x| format!("Error: {x}"));
             for c in result.chars() {
                 if c == '\n' {
                     newline(stdout);
