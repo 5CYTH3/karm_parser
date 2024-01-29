@@ -43,7 +43,7 @@ fn build(path: &String, cli: &Cli) {
     if path.ends_with(".kr") {
         let program = match fs::read_to_string(path) {
             Ok(value) => value,
-            Err(e) => panic!("{}", e),
+            Err(e) => panic!("{e}"),
         };
         let ast = match KarmParser::new(program).program() {
             Ok(ast) => ast,
@@ -65,6 +65,6 @@ fn build(path: &String, cli: &Cli) {
 }
 
 fn _shell() {
-    let session = repl::Repl::new(">>>".to_string(), "...".to_string(), Vec::new());
+    let session = repl::Repl::new(">>> ".to_string(), "... ".to_string(), Vec::new());
     session.run();
 }
