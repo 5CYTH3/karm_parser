@@ -45,7 +45,13 @@ fn build(path: &String, cli: &Cli) {
             Ok(value) => value,
             Err(e) => panic!("{}", e),
         };
-        let ast = KarmParser::new(program).program();
+        let ast = match KarmParser::new(program).program() {
+            Ok(ast) => ast,
+            Err(err) => {
+                println!("{err}");
+                exit(1)
+            }
+        };
         if cli.ast == true {
             println!("{:#?}", ast);
         }

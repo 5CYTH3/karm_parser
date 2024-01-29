@@ -57,7 +57,7 @@ impl Parser {
         }
     }
 
-    pub fn program(mut self) -> Program {
+    pub fn program(mut self) -> Result<Program, SyntaxError> {
         if self.next.is_none() {
             println!("Program Terminated : Lookahead is empty, nothing to parse.");
             exit(1)
@@ -65,19 +65,13 @@ impl Parser {
         self.parse()
     }
 
-    pub fn parse(&mut self) -> Program {
+    pub fn parse(&mut self) -> Result<Program, SyntaxError> {
         let mut ast: Vec<Expr> = Vec::new();
         while !self.next.is_none() {
             let exp = self.expr_def();
-            ast.push(match exp {
-                Ok(val) => val,
-                Err(e) => {
-                    println!("{}", e);
-                    exit(1)
-                }
-            });
+            ast.push(exp?);
         }
-        Program(ast)
+        Ok(Program(ast))
     }
 
     fn expr_def(&mut self) -> Result<Expr, SyntaxError> {
@@ -336,7 +330,8 @@ mod tests {
     fn fib_func() {
         assert_eq!(
             Parser::new(r#"fn fib :: n -> if n <= 1 ? n : fib(n - 1) + fib(n - 2);"#.to_owned())
-                .program(),
+                .program()
+                .unwrap(),
             Program(vec![Expr::LamDef {
                 ident: "fib".to_owned(),
                 style: LamStyle::Prefix,
