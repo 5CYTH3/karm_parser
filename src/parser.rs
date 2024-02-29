@@ -6,18 +6,15 @@ use crate::lexer::tokens::{Kind, Token};
 use crate::lexer::Lexer;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Expr {
-    Binary {
-        op: Kind,
-        lhs: Box<Expr>,
-        rhs: Box<Expr>,
-    },
+pub enum Expr { 
     Literal(Literal),
     LamCall {
         ident: String,
+        style: LamStyle,
         params: Option<Vec<Expr>>,
     },
     LamDef {
+        style: LamStyle,
         ident: String,
         params: Option<Vec<String>>,
         operation: Box<Expr>,
@@ -31,7 +28,8 @@ pub enum Expr {
     Use(String),
 }
 
-pub enum LamType {
+#[derive(Debug, Clone, PartialEq)]
+pub enum LamStyle {
     Infix,
     Prefix,
 }
@@ -68,11 +66,10 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> Program {
-        let mut program: Vec<Expr> = vec![];
-
+        let mut ast: Vec<Expr> = Vec::new();
         while !self.next.is_none() {
             let exp = self.expr_def();
-            program.push(match exp {
+            ast.push(match exp {
                 Ok(val) => val,
                 Err(e) => {
                     println!("{}", e);
@@ -80,7 +77,7 @@ impl Parser {
                 }
             });
         }
-        Program(program)
+        Program(ast)
     }
 
     fn expr_def(&mut self) -> Result<Expr, SyntaxError> {
@@ -100,8 +97,9 @@ impl Parser {
                 ))
             }
         };
+
         let expr = match next_token.kind {
-            Kind::Lam => self.fun_expr(),
+            Kind::Lam => self.lam_expr(),
             Kind::Use => self.use_expr(),
             _ => Err(SyntaxError(
                 vec![Kind::Lam],
@@ -109,6 +107,7 @@ impl Parser {
                 (self.lexer.col_cursor, self.lexer.line_cursor),
             )),
         };
+
         expr
     }
 
@@ -119,9 +118,14 @@ impl Parser {
     }
 
     // ? No more function nesting (we call if_exprs and not expr everywhere)
-    fn fun_expr(&mut self) -> Result<Expr, SyntaxError> {
+    fn lam_expr(&mut self) -> Result<Expr, SyntaxError> {
         self.eat(&mut Kind::Lam)?;
-        let id = self.eat(&Kind::Ident)?.value;
+        let id = self.eat(&Kind::Ident)?.value; 
+        let mut style = LamStyle::Prefix;
+        if self.next_token().kind == Kind::Bar {
+            self.eat(&Kind::Bar)?;
+            style = LamStyle::Infix;
+        }
 
         // Check if the function has parameters (if it has the :: operator, it has parameters).
         if self.next_token().kind == Kind::DoubleColon {
@@ -137,6 +141,7 @@ impl Parser {
             self.eat(&Kind::Arrow)?;
             return Ok(Expr::LamDef {
                 ident: id,
+                style,
                 params: Some(params),
                 operation: Box::new(self.if_expr()?),
             });
@@ -147,6 +152,7 @@ impl Parser {
 
         Ok(Expr::LamDef {
             ident: id,
+            style,
             params: None,
             operation: Box::new(self.if_expr()?),
         })
@@ -192,12 +198,12 @@ impl Parser {
     fn conditional_expr(&mut self) -> Result<Expr, SyntaxError> {
         let mut left: Expr = self.low_prec_expr()?;
         while self.next_token().get_prec() == 1 {
-            let op = self.eat(&self.next_token().clone().kind)?.kind;
+            let op = self.eat(&self.next_token().clone().kind)?.value;
             let right = self.low_prec_expr()?;
-            left = Expr::Binary {
-                op,
-                lhs: Box::new(left),
-                rhs: Box::new(right),
+            left = Expr::LamCall {
+                ident: op,
+                style: LamStyle::Infix,
+                params: Some(vec![left, right])
             };
         }
         Ok(left)
@@ -208,14 +214,14 @@ impl Parser {
         let mut left = self.high_prec_expr()?;
         while self.next_token().get_prec() == 2 {
             let op = match self.eat(&self.next_token().clone().kind) {
-                Ok(val) => val.kind,
+                Ok(val) => val.value,
                 Err(e) => return Err(e),
             };
             let right = self.high_prec_expr()?;
-            left = Expr::Binary {
-                op,
-                lhs: Box::new(left),
-                rhs: Box::new(right),
+            left = Expr::LamCall {
+                ident: op,
+                style: LamStyle::Infix,
+                params: Some(vec![left, right])
             };
         }
         Ok(left)
@@ -225,12 +231,12 @@ impl Parser {
     fn high_prec_expr(&mut self) -> Result<Expr, SyntaxError> {
         let mut left: Expr = self.factor()?;
         while self.next_token().get_prec() == 3 {
-            let op = self.eat(&self.next_token().clone().kind)?.kind;
+            let op = self.eat(&self.next_token().clone().kind)?.value;
             let right = self.factor()?;
-            left = Expr::Binary {
-                op,
-                lhs: Box::new(left),
-                rhs: Box::new(right),
+            left = Expr::LamCall {
+                ident: op,
+                style: LamStyle::Infix,
+                params: Some(vec![left, right])
             };
         }
         Ok(left)
@@ -268,6 +274,7 @@ impl Parser {
             };
             return Ok(Expr::LamCall {
                 ident: id.value,
+                style: LamStyle::Prefix,
                 params,
             });
         }
@@ -332,32 +339,40 @@ mod tests {
                 .program(),
             Program(vec![Expr::LamDef {
                 ident: "fib".to_owned(),
+                style: LamStyle::Prefix,
                 params: Some(vec!["n".to_owned()]),
                 operation: Box::from(Expr::If {
-                    cond: Box::from(Expr::Binary {
-                        op: Kind::Leq,
-                        lhs: Box::from(Expr::Var("n".to_owned())),
-                        rhs: Box::from(Expr::Literal(Literal::Int(1)))
+                    cond: Box::from(Expr::LamCall {
+                        ident: "<=".to_owned(),
+                        style: LamStyle::Infix,
+                        params: Some(vec![Expr::Var("n".to_owned()), Expr::Literal(Literal::Int(1))])
                     }),
                     then: Box::from(Expr::Var("n".to_owned())),
-                    alter: Box::from(Expr::Binary {
-                        op: Kind::Plus,
-                        lhs: Box::from(Expr::LamCall {
-                            ident: "fib".to_owned(),
-                            params: Some(vec![Expr::Binary {
-                                op: Kind::Min,
-                                lhs: Box::from(Expr::Var("n".to_owned())),
-                                rhs: Box::from(Expr::Literal(Literal::Int(1)))
-                            }])
-                        }),
-                        rhs: Box::from(Expr::LamCall {
-                            ident: "fib".to_owned(),
-                            params: Some(vec![Expr::Binary {
-                                op: Kind::Min,
-                                lhs: Box::from(Expr::Var("n".to_owned())),
-                                rhs: Box::from(Expr::Literal(Literal::Int(2)))
-                            }])
-                        }),
+                    alter: Box::from(Expr::LamCall {
+                        ident: "+".to_owned(),
+                        style: LamStyle::Infix,
+                        params: Some(
+                            vec![
+                                Expr::LamCall {
+                                    ident: "fib".to_owned(),
+                                    style: LamStyle::Prefix,
+                                    params: Some(vec![Expr::LamCall {
+                                        ident: "-".to_owned(),
+                                        style: LamStyle::Infix,
+                                        params: Some(vec![Expr::Var("n".to_owned()), Expr::Literal(Literal::Int(1))])
+                                    }])
+                                },
+                                Expr::LamCall {
+                                    ident: "fib".to_owned(),
+                                    style: LamStyle::Prefix,
+                                    params: Some(vec![Expr::LamCall {
+                                        ident: "-".to_owned(), 
+                                        style: LamStyle::Infix,
+                                        params: Some(vec![Expr::Var("n".to_owned()), Expr::Literal(Literal::Int(2))])
+                                    }])
+                                }
+                            ]
+                        ),
                     })
                 })
             }])

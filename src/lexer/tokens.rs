@@ -14,6 +14,7 @@ pub enum Kind {
     Integer,
     String,
     Lam,
+    Bar,
     Comma,
     LParen,
     RParen,
@@ -69,6 +70,7 @@ impl Debug for Kind {
             Kind::SemiColon => ";",
             Kind::String => "STR",
             Kind::Use => "USE",
+            Kind::Bar => "|",
             _ => "",
         };
         write!(f, "{}", data)

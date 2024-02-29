@@ -40,12 +40,13 @@ impl Lexer {
             (r"^\d+", Some(Kind::Integer)), // Integers
             (r"^\n", Some(Kind::Newline)),  // Newline
             (r"^\s+", None),                // Whitespace
-            (r"^\lam\b", Some(Kind::Lam)),
+            (r"^\blam\b", Some(Kind::Lam)),
             (r"^\buse\b", Some(Kind::Use)),
             (r"^\bif\b", Some(Kind::If)),
             (r"^::", Some(Kind::DoubleColon)),
             (r"^:", Some(Kind::Colon)),
             (r"^;", Some(Kind::SemiColon)),
+            (r"^\|", Some(Kind::Bar)),
             (r#"^"[^"]*""#, Some(Kind::String)),
             (r"^->", Some(Kind::Arrow)),
             (r"^\*", Some(Kind::Mul)),
