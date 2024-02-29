@@ -7,6 +7,16 @@ use crate::{
     parser::{Expr, Literal, Program},
 };
 
+pub enum Sig {
+    // Used to represent function, A type Joined { i: Int, o: String } is equivalent to Int -> String
+    Joined {
+        i: Box<Sig>,
+        o: Box<Sig>
+    },
+    // Classic unique type
+    Unit(Type)
+}
+
 struct TypeScheme(Gamma, BTreeSet<Type>);
 
 type Gamma = BTreeSet<Assumption>;
