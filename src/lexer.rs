@@ -89,6 +89,6 @@ impl Lexer {
                 None => continue,
             }
         }
-        return None;
+        None
     }
 }

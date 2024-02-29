@@ -6,7 +6,7 @@ use crate::lexer::tokens::{Kind, Token};
 use crate::lexer::Lexer;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Expr { 
+pub enum Expr {
     Literal(Literal),
     LamCall {
         ident: String,
@@ -57,7 +57,7 @@ impl Parser {
         }
     }
 
-    pub fn program(mut self) -> Program {
+    pub fn program(mut self) -> Result<Program, SyntaxError> {
         if self.next.is_none() {
             println!("Program Terminated : Lookahead is empty, nothing to parse.");
             exit(1)
@@ -65,24 +65,18 @@ impl Parser {
         self.parse()
     }
 
-    pub fn parse(&mut self) -> Program {
+    pub fn parse(&mut self) -> Result<Program, SyntaxError> {
         let mut ast: Vec<Expr> = Vec::new();
-        while !self.next.is_none() {
+        while self.next.is_some() {
             let exp = self.expr_def();
-            ast.push(match exp {
-                Ok(val) => val,
-                Err(e) => {
-                    println!("{}", e);
-                    exit(1)
-                }
-            });
+            ast.push(exp?);
         }
-        Program(ast)
+        Ok(Program(ast))
     }
 
     fn expr_def(&mut self) -> Result<Expr, SyntaxError> {
         let expr = self.expr();
-        self.eat(&mut Kind::SemiColon)?;
+        self.eat(&Kind::SemiColon)?;
         expr
     }
 
@@ -98,7 +92,7 @@ impl Parser {
             }
         };
 
-        let expr = match next_token.kind {
+        match next_token.kind {
             Kind::Lam => self.lam_expr(),
             Kind::Use => self.use_expr(),
             _ => Err(SyntaxError(
@@ -106,9 +100,7 @@ impl Parser {
                 Some(next_token.kind.to_owned()),
                 (self.lexer.col_cursor, self.lexer.line_cursor),
             )),
-        };
-
-        expr
+        }
     }
 
     fn use_expr(&mut self) -> Result<Expr, SyntaxError> {
@@ -119,8 +111,8 @@ impl Parser {
 
     // ? No more function nesting (we call if_exprs and not expr everywhere)
     fn lam_expr(&mut self) -> Result<Expr, SyntaxError> {
-        self.eat(&mut Kind::Lam)?;
-        let id = self.eat(&Kind::Ident)?.value; 
+        self.eat(&Kind::Lam)?;
+        let id = self.eat(&Kind::Ident)?.value;
         let mut style = LamStyle::Prefix;
         if self.next_token().kind == Kind::Bar {
             self.eat(&Kind::Bar)?;
@@ -130,7 +122,7 @@ impl Parser {
         // Check if the function has parameters (if it has the :: operator, it has parameters).
         if self.next_token().kind == Kind::DoubleColon {
             let mut params: Vec<String> = vec![];
-            self.eat(&mut Kind::DoubleColon)?;
+            self.eat(&Kind::DoubleColon)?;
             while self.next_token().kind != Kind::Arrow {
                 params.push(self.eat(&Kind::Ident)?.value);
                 if self.next_token().kind == Kind::Comma {
@@ -203,7 +195,7 @@ impl Parser {
             left = Expr::LamCall {
                 ident: op,
                 style: LamStyle::Infix,
-                params: Some(vec![left, right])
+                params: Some(vec![left, right]),
             };
         }
         Ok(left)
@@ -221,7 +213,7 @@ impl Parser {
             left = Expr::LamCall {
                 ident: op,
                 style: LamStyle::Infix,
-                params: Some(vec![left, right])
+                params: Some(vec![left, right]),
             };
         }
         Ok(left)
@@ -236,7 +228,7 @@ impl Parser {
             left = Expr::LamCall {
                 ident: op,
                 style: LamStyle::Infix,
-                params: Some(vec![left, right])
+                params: Some(vec![left, right]),
             };
         }
         Ok(left)
@@ -322,9 +314,9 @@ impl Debug for Literal {
 
 impl Debug for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.iter().fold(Ok(()), |res, expr| {
-            res.and_then(|_| writeln!(f, "{:#?}", expr))
-        })
+        self.0
+            .iter()
+            .try_fold((), |_, expr| writeln!(f, "{:#?}", expr))
     }
 }
 
@@ -335,8 +327,9 @@ mod tests {
     #[test]
     fn fib_func() {
         assert_eq!(
-            Parser::new(r#"fn fib :: n -> if n <= 1 ? n : fib(n - 1) + fib(n - 2);"#.to_owned())
-                .program(),
+            Parser::new(r#"lam fib :: n -> if n <= 1 ? n : fib(n - 1) + fib(n - 2);"#.to_owned())
+                .program()
+                .unwrap(),
             Program(vec![Expr::LamDef {
                 ident: "fib".to_owned(),
                 style: LamStyle::Prefix,
@@ -345,34 +338,41 @@ mod tests {
                     cond: Box::from(Expr::LamCall {
                         ident: "<=".to_owned(),
                         style: LamStyle::Infix,
-                        params: Some(vec![Expr::Var("n".to_owned()), Expr::Literal(Literal::Int(1))])
+                        params: Some(vec![
+                            Expr::Var("n".to_owned()),
+                            Expr::Literal(Literal::Int(1))
+                        ])
                     }),
                     then: Box::from(Expr::Var("n".to_owned())),
                     alter: Box::from(Expr::LamCall {
                         ident: "+".to_owned(),
                         style: LamStyle::Infix,
-                        params: Some(
-                            vec![
-                                Expr::LamCall {
-                                    ident: "fib".to_owned(),
-                                    style: LamStyle::Prefix,
-                                    params: Some(vec![Expr::LamCall {
-                                        ident: "-".to_owned(),
-                                        style: LamStyle::Infix,
-                                        params: Some(vec![Expr::Var("n".to_owned()), Expr::Literal(Literal::Int(1))])
-                                    }])
-                                },
-                                Expr::LamCall {
-                                    ident: "fib".to_owned(),
-                                    style: LamStyle::Prefix,
-                                    params: Some(vec![Expr::LamCall {
-                                        ident: "-".to_owned(), 
-                                        style: LamStyle::Infix,
-                                        params: Some(vec![Expr::Var("n".to_owned()), Expr::Literal(Literal::Int(2))])
-                                    }])
-                                }
-                            ]
-                        ),
+                        params: Some(vec![
+                            Expr::LamCall {
+                                ident: "fib".to_owned(),
+                                style: LamStyle::Prefix,
+                                params: Some(vec![Expr::LamCall {
+                                    ident: "-".to_owned(),
+                                    style: LamStyle::Infix,
+                                    params: Some(vec![
+                                        Expr::Var("n".to_owned()),
+                                        Expr::Literal(Literal::Int(1))
+                                    ])
+                                }])
+                            },
+                            Expr::LamCall {
+                                ident: "fib".to_owned(),
+                                style: LamStyle::Prefix,
+                                params: Some(vec![Expr::LamCall {
+                                    ident: "-".to_owned(),
+                                    style: LamStyle::Infix,
+                                    params: Some(vec![
+                                        Expr::Var("n".to_owned()),
+                                        Expr::Literal(Literal::Int(2))
+                                    ])
+                                }])
+                            }
+                        ]),
                     })
                 })
             }])

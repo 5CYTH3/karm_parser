@@ -1,6 +1,7 @@
 mod errors;
 mod lexer;
 mod parser;
+mod repl;
 // mod typechecker;
 
 use clap::{Parser, Subcommand};
@@ -33,7 +34,7 @@ fn main() {
 
     match &cli.command {
         Some(Commands::Build { file }) => build(file, &cli),
-        Some(Commands::Shell {}) => {}
+        Some(Commands::Shell {}) => _shell(),
         None => {}
     }
 }
@@ -42,10 +43,16 @@ fn build(path: &String, cli: &Cli) {
     if path.ends_with(".kr") {
         let program = match fs::read_to_string(path) {
             Ok(value) => value,
-            Err(e) => panic!("{}", e),
+            Err(e) => panic!("{e}"),
         };
-        let ast = KarmParser::new(program).program();
-        if cli.ast == true {
+        let ast = match KarmParser::new(program).program() {
+            Ok(ast) => ast,
+            Err(err) => {
+                println!("{err}");
+                exit(1)
+            }
+        };
+        if cli.ast {
             println!("{:#?}", ast);
         }
 
@@ -57,4 +64,7 @@ fn build(path: &String, cli: &Cli) {
     }
 }
 
-fn _shell() {}
+fn _shell() {
+    let session = repl::Repl::new(">>> ".to_string(), "... ".to_string(), Vec::new());
+    session.run();
+}
