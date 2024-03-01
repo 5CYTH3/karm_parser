@@ -7,6 +7,18 @@ All the steps of the Karm compilation :
 - [ ] IR optimization
 - [ ] Code generation
 
+# Features
+- [ ] Collections (arrays, lists, matrices)
+- [ ] Algebraic data types (sum, product)
+- [ ] Unary operators
+- [ ] Infix and prefix functions
+- [ ] Reverse application operator
+- [ ] Pattern matching
+- [ ] 
+
+# Concepts
+I would really like to include some Homotopy Type Theory and category theory in the project.
+
 # By-subject ressources
 ### General
 - [The Dragon Book](https://www.amazon.com/dp/0321486811)
@@ -28,3 +40,5 @@ All the steps of the Karm compilation :
 
 ### Code generation
 - [Linking/Loading](https://www.amazon.com/dp/1558604960)
+
+BETE D'IDEE : ENFAIT POUR FAIRE LA REPR DE TYPES, JE PEUX JUSTE UTILISER UN COUPLE (Varname, TYPEJUDGEMENT)

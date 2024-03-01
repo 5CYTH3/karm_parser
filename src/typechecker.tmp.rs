@@ -7,6 +7,14 @@ use crate::{
     parser::{Expr, Literal, Program},
 };
 
+pub enum Sig {
+    Joined {
+        i: Box<Sig>,
+        o: Box<Sig>
+    },
+    Unit(Type)
+}
+
 struct TypeScheme(Gamma, BTreeSet<Type>);
 
 type Gamma = BTreeSet<Assumption>;
