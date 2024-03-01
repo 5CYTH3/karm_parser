@@ -86,8 +86,10 @@ impl Iterator for Lexer {
             return None;
         }
 
-        let current = &self.program[self.cursor..];
+        // ! Here I use the type coercion of &String to &str to clone the value and avoid errors related to mutable borrow after immutable borrow.
+        let current = &self.program[self.cursor..].to_string();
 
+        // Iterates over all the tokens in REGEX_SET and check if the current string matches any token
         for (reg, tok_type) in REGEX_SET {
             match Regex::new(reg).unwrap().captures(current) {
                 Some(caps) => return self.match_token(tok_type, caps.get(0).unwrap().as_str()),
