@@ -40,6 +40,9 @@ pub enum Literal {
     Int(i32),
 }
 
+// TODO: Simple disclaimers : 
+// ! Could the parser potentially become an iterator too ?
+// ! Should I use a more functional approach for the parser ?
 #[derive(PartialEq)]
 pub struct Program(pub Vec<Expr>);
 
@@ -52,7 +55,7 @@ impl Parser {
     pub fn new(program: String) -> Self {
         let mut lexer = Lexer::new(program);
         Self {
-            next: lexer.get_next(),
+            next: lexer.next(),
             lexer,
         }
     }
@@ -297,7 +300,7 @@ impl Parser {
             ));
         }
 
-        self.next = self.lexer.get_next();
+        self.next = self.lexer.next();
 
         Ok(t)
     }
