@@ -58,7 +58,7 @@ impl Lexer {
         self.cursor < self.program.len()
     }
 
-    fn match_token(&mut self, (reg, tok_kind): (&str, Option<Kind>), capture: &str) -> Option<Token> {
+    fn match_token(&mut self, tok_kind: Option<Kind>, capture: &str) -> Option<Token> {
         self.cursor += capture.len();
         self.col_cursor += capture.len() - 1;
         match tok_kind {
@@ -86,11 +86,11 @@ impl Iterator for Lexer {
             return None;
         }
 
-        let s_str = &self.program[self.cursor..];
+        let current = &self.program[self.cursor..];
 
         for (reg, tok_type) in REGEX_SET {
-            match Regex::new(reg).unwrap().captures(s_str) {
-                Some(caps) => return self.match_token((reg, tok_type), caps.get(0).unwrap().as_str()),
+            match Regex::new(reg).unwrap().captures(current) {
+                Some(caps) => return self.match_token(tok_type, caps.get(0).unwrap().as_str()),
                 None => continue
             }
         }
