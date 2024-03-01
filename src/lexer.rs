@@ -87,6 +87,7 @@ impl Iterator for Lexer {
         }
 
         // ! Here I use the type coercion of &String to &str to clone the value and avoid errors related to mutable borrow after immutable borrow.
+        // ! I haven't found a better solution to do this...
         let current = &self.program[self.cursor..].to_string();
 
         // Iterates over all the tokens in REGEX_SET and check if the current string matches any token
