@@ -8,7 +8,7 @@ pub mod tokens;
 
 
 // Don't mess up the order or it becomes hell
-const REGEX_SET: Vec<(&str, Option<Kind>)> = vec![
+const REGEX_SET: [(&str, Option<Kind>); 25] = [
     (r"^\d+", Some(Kind::Integer)), // Integers
     (r"^\n", Some(Kind::Newline)),  // Newline
     (r"^\s+", None),                // Whitespace
