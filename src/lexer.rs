@@ -59,7 +59,26 @@ impl Lexer {
     }
 
     // TODO: Obviously implement that function to have a more readable code
-    fn _match_token(&mut self, _regexp: (&str, Kind), _ctx: &str) {}
+    fn match_token(&mut self, (reg, tok_kind): (&str, Kind), _ctx: &str) {
+        let capture = caps.get(0).unwrap().as_str();
+        self.cursor += capture.len();
+        self.col_cursor += capture.len() - 1;
+        match reg {
+            Some(token_type) => {
+                if token_type == Kind::Newline {
+                    self.col_cursor = 1;
+                    self.line_cursor += 1;
+                    return self.next();
+                }
+                Some(Token {
+                    kind: token_type,
+                    value: capture.to_string(),
+                });
+            }
+            None => self.next(),
+        }
+
+    }
 
     pub fn get_next(&mut self) -> Option<Token> {
         if !self.has_more_token() {
@@ -95,4 +114,30 @@ impl Lexer {
         }
         None
     }
+}
+
+impl Iterator for Lexer {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if !self.has_more_token() {
+            return None;
+        }
+
+        // Add a way to detect if the token is in the r_set.
+        // TODO: Maybe improve this function by using a plain iterator and making Lexer implement iterator.
+        let s_str = &self.program[self.cursor..];
+
+        REGEX_SET
+            .iter()
+            .for_each(|&(reg, tok)| {
+                match Regex::new(reg).unwrap().captures(s_str) {
+                    Some(caps) => self._match_token(reg, ctx),
+                    None => ()
+                }
+            });
+
+        None
+    }
+
 }
