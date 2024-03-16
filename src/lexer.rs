@@ -57,7 +57,7 @@ impl<'a> Lexer<'a> {
         self.cursor < self.program.len()
     }
 
-    fn match_token(&mut self, tok_kind: Option<Kind>, capture: &str) -> Option<Token> {
+    fn match_token(&mut self, tok_kind: Option<Kind>, capture: &'a str) -> Option<Token<'a>> {
         self.cursor += capture.len();
         self.col_cursor += capture.len() - 1;
         match tok_kind {
@@ -68,7 +68,7 @@ impl<'a> Lexer<'a> {
             }
             Some(kind) => Some(Token {
                 kind,
-                value: capture.to_string(),
+                value: capture,
             }),
             None => self.next(),
         }
@@ -76,7 +76,7 @@ impl<'a> Lexer<'a> {
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = Token;
+    type Item = Token<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if !self.has_more_token() {

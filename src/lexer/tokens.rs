@@ -29,12 +29,12 @@ pub enum Kind {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Token {
+pub struct Token<'a> {
     pub kind: Kind,
-    pub value: String,
+    pub value: &'a str,
 }
 
-impl Token {
+impl<'a> Token<'a> {
     pub fn get_prec(&self) -> i32 {
         match self.kind {
             Kind::Mul | Kind::Div => 3,

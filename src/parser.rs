@@ -47,7 +47,7 @@ pub enum Literal {
 pub struct Program(pub Vec<Expr>);
 
 pub struct Parser<'a> {
-    next: Option<Token>,
+    next: Option<Token<'a>>,
     lexer: Lexer<'a>,
 }
 
@@ -109,13 +109,13 @@ impl<'a> Parser<'a> {
     fn use_expr(&mut self) -> Result<Expr, SyntaxError> {
         self.eat(&Kind::Use)?;
         let path = self.eat(&Kind::String)?.value;
-        Ok(Expr::Use(path))
+        Ok(Expr::Use(path.to_string()))
     }
 
     // ? No more function nesting (we call if_exprs and not expr everywhere)
     fn lam_expr(&mut self) -> Result<Expr, SyntaxError> {
         self.eat(&Kind::Lam)?;
-        let id = self.eat(&Kind::Ident)?.value;
+        let id = self.eat(&Kind::Ident)?.value.to_string();
         let mut style = LamStyle::Prefix;
         if self.next_token().kind == Kind::Bar {
             self.eat(&Kind::Bar)?;
@@ -127,7 +127,7 @@ impl<'a> Parser<'a> {
             let mut params: Vec<String> = vec![];
             self.eat(&Kind::DoubleColon)?;
             while self.next_token().kind != Kind::Arrow {
-                params.push(self.eat(&Kind::Ident)?.value);
+                params.push(self.eat(&Kind::Ident)?.value.to_string());
                 if self.next_token().kind == Kind::Comma {
                     self.eat(&Kind::Comma)?;
                 }
@@ -135,7 +135,7 @@ impl<'a> Parser<'a> {
 
             self.eat(&Kind::Arrow)?;
             return Ok(Expr::LamDef {
-                ident: id,
+                ident: id.to_string(),
                 style,
                 params: Some(params),
                 operation: Box::new(self.if_expr()?),
@@ -146,7 +146,7 @@ impl<'a> Parser<'a> {
         self.eat(&Kind::Arrow)?;
 
         Ok(Expr::LamDef {
-            ident: id,
+            ident: id.to_string(),
             style,
             params: None,
             operation: Box::new(self.if_expr()?),
@@ -193,10 +193,10 @@ impl<'a> Parser<'a> {
     fn conditional_expr(&mut self) -> Result<Expr, SyntaxError> {
         let mut left: Expr = self.low_prec_expr()?;
         while self.next_token().get_prec() == 1 {
-            let op = self.eat(&self.next_token().clone().kind)?.value;
+            let op = self.eat(&self.next_token().clone().kind)?.value.to_string();
             let right = self.low_prec_expr()?;
             left = Expr::LamCall {
-                ident: op,
+                ident: op.to_string(),
                 style: LamStyle::Infix,
                 params: Some(vec![left, right]),
             };
@@ -209,12 +209,12 @@ impl<'a> Parser<'a> {
         let mut left = self.high_prec_expr()?;
         while self.next_token().get_prec() == 2 {
             let op = match self.eat(&self.next_token().clone().kind) {
-                Ok(val) => val.value,
+                Ok(val) => val.value.to_string(),
                 Err(e) => return Err(e),
             };
             let right = self.high_prec_expr()?;
             left = Expr::LamCall {
-                ident: op,
+                ident: op.to_string(),
                 style: LamStyle::Infix,
                 params: Some(vec![left, right]),
             };
@@ -226,10 +226,10 @@ impl<'a> Parser<'a> {
     fn high_prec_expr(&mut self) -> Result<Expr, SyntaxError> {
         let mut left: Expr = self.factor()?;
         while self.next_token().get_prec() == 3 {
-            let op = self.eat(&self.next_token().clone().kind)?.value;
+            let op = self.eat(&self.next_token().clone().kind)?.value.to_string();
             let right = self.factor()?;
             left = Expr::LamCall {
-                ident: op,
+                ident: op.to_string(),
                 style: LamStyle::Infix,
                 params: Some(vec![left, right]),
             };
@@ -245,7 +245,9 @@ impl<'a> Parser<'a> {
                     Err(e) => return Err(e),
                 },
             ))),
-            Kind::String => Ok(Expr::Literal(Literal::Str(self.eat(&Kind::String)?.value))),
+            Kind::String => Ok(Expr::Literal(Literal::Str(
+                self.eat(&Kind::String)?.value.to_string(),
+            ))),
             Kind::LParen => self.parenthesized_expr(),
             _ => self.ident(),
         };
@@ -253,7 +255,7 @@ impl<'a> Parser<'a> {
     }
 
     fn ident(&mut self) -> Result<Expr, SyntaxError> {
-        let id = self.eat(&Kind::Ident)?;
+        let id = self.eat(&Kind::Ident)?.value.to_string();
         if self.next_token().kind == Kind::LParen {
             let mut _params: Vec<Expr> = Vec::new();
             self.eat(&Kind::LParen)?;
@@ -268,12 +270,12 @@ impl<'a> Parser<'a> {
                 false => Some(_params),
             };
             return Ok(Expr::LamCall {
-                ident: id.value,
+                ident: id,
                 style: LamStyle::Prefix,
                 params,
             });
         }
-        Ok(Expr::Var(id.value))
+        Ok(Expr::Var(id))
     }
 
     fn next_token(&self) -> &Token {
