@@ -241,7 +241,7 @@ impl<'a> Parser<'a> {
         let literal: Result<Expr, SyntaxError> = match self.next_token().kind {
             Kind::Integer => Ok(Expr::Literal(Literal::Int(
                 match self.eat(&Kind::Integer) {
-                    Ok(val) => val.value.to_string().parse::<i32>().unwrap(),
+                    Ok(val) => val.value.parse::<i32>().unwrap(),
                     Err(e) => return Err(e),
                 },
             ))),
