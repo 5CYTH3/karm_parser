@@ -330,7 +330,7 @@ mod tests {
     #[test]
     fn fib_func() {
         assert_eq!(
-            Parser::new(r#"lam fib :: n -> if n <= 1 ? n : fib(n - 1) + fib(n - 2);"#.to_owned())
+            Parser::new(r#"lam fib :: n -> if n <= 1 ? n : fib(n - 1) + fib(n - 2);"#)
                 .program()
                 .unwrap(),
             Program(vec![Expr::LamDef {
