@@ -6,7 +6,6 @@ use self::tokens::Kind;
 
 pub mod tokens;
 
-
 // Don't mess up the order or it becomes hell
 const REGEX_SET: [(&str, Option<Kind>); 25] = [
     (r"^\d+", Some(Kind::Integer)), // Integers
@@ -37,15 +36,15 @@ const REGEX_SET: [(&str, Option<Kind>); 25] = [
 ];
 
 #[derive(Clone)]
-pub struct Lexer {
-    program: String,
+pub struct Lexer<'a> {
+    program: &'a str,
     cursor: usize,
     pub line_cursor: usize,
     pub col_cursor: usize,
 }
 
-impl Lexer {
-    pub fn new(program: String) -> Self {
+impl<'a> Lexer<'a> {
+    pub fn new(program: &'a str) -> Self {
         Self {
             program,
             cursor: 0,
@@ -66,19 +65,17 @@ impl Lexer {
                 self.col_cursor = 1;
                 self.line_cursor += 1;
                 self.next()
-            },
+            }
             Some(kind) => Some(Token {
                 kind,
                 value: capture.to_string(),
             }),
             None => self.next(),
         }
-
     }
-
 }
 
-impl Iterator for Lexer {
+impl<'a> Iterator for Lexer<'a> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -86,19 +83,16 @@ impl Iterator for Lexer {
             return None;
         }
 
-        // ! Here I use the type coercion of &String to &str to clone the value and avoid errors related to mutable borrow after immutable borrow.
-        // ! I haven't found a better solution to do this...
-        let current = &self.program[self.cursor..].to_string();
+        let current = &self.program[self.cursor..];
 
         // Iterates over all the tokens in REGEX_SET and check if the current string matches any token
         for (reg, tok_type) in REGEX_SET {
             match Regex::new(reg).unwrap().captures(current) {
                 Some(caps) => return self.match_token(tok_type, caps.get(0).unwrap().as_str()),
-                None => continue
+                None => continue,
             }
         }
 
         None
     }
-
 }
