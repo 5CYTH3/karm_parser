@@ -78,7 +78,7 @@ impl Repl {
                         // The current line ends a command
                         if self.current_line.ends_with(';') {
                             let full_command = self.history[self.first_command_line..].join("\n");
-                            let ast = parser::Parser::new(full_command)
+                            let ast = parser::Parser::new(&full_command)
                                 .parse()
                                 .map(|x| format!("{:#?}", x))
                                 .map_err(|err| format!("{err}"));
