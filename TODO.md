@@ -3,6 +3,8 @@ All the steps of the Karm compilation :
 - [x] Efficient lexer
 - [x] Parser (maybe to refactor to use less ExprTypes)
 - [ ] Typechecker
+    - [ ] Hindley-Milner type system and type inference algorithm
+    - [ ] Dependent Typing supports
 - [ ] IR generation
 - [ ] IR optimization
 - [ ] Code generation
@@ -14,10 +16,9 @@ All the steps of the Karm compilation :
 - [ ] Infix and prefix functions
 - [ ] Reverse application operator
 - [ ] Pattern matching
-- [ ] 
 
 # Concepts
-I would really like to include some Homotopy Type Theory and category theory in the project.
+I would really like to include some Homotopy Type Theory inside the project.
 
 # By-subject ressources
 ### General
