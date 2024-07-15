@@ -4,6 +4,13 @@ use termion::cursor::DetectCursorPos;
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
+
+/*
+    ! DISCLAIMER: 
+    This code will soon be refactored as I plan on using crossterm instead of termion (mainly because termion lacks windows
+    support and I want to be able to use the program and build on any machine).
+ */
+
 /// The structure representing the REPL's state
 pub struct Repl {
     /// The string printed before, the first line of the command.

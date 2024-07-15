@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 regex = "*"
 clap = { version = "4.0", features = ["derive"] }
-termion = "3.0.0"
+# termion = "3.0.0"

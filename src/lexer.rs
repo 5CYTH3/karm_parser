@@ -1,4 +1,6 @@
-use regex::Regex;
+use std::iter::Peekable;
+
+use regex::{Captures, Regex};
 
 use crate::lexer::tokens::Token;
 
@@ -39,8 +41,7 @@ const REGEX_SET: [(&str, Option<Kind>); 25] = [
 pub struct Lexer<'a> {
     program: &'a str,
     cursor: usize,
-    pub line_cursor: usize,
-    pub col_cursor: usize,
+    pub coords: (usize, usize)
 }
 
 impl<'a> Lexer<'a> {
@@ -48,8 +49,7 @@ impl<'a> Lexer<'a> {
         Self {
             program,
             cursor: 0,
-            col_cursor: 1,
-            line_cursor: 1,
+            coords: (1, 1)
         }
     }
 
@@ -58,21 +58,29 @@ impl<'a> Lexer<'a> {
     }
 
     fn match_token(&mut self, tok_kind: Option<Kind>, capture: &'a str) -> Option<Token<'a>> {
+
+        let (line, col) = self.coords;
+
         self.cursor += capture.len();
-        self.col_cursor += capture.len() - 1;
+
         match tok_kind {
             Some(Kind::Newline) => {
-                self.col_cursor = 1;
-                self.line_cursor += 1;
+                self.coords = (line + 1, 1);
                 self.next()
             }
-            Some(kind) => Some(Token {
-                kind,
-                value: capture,
-            }),
+            Some(kind) => {
+                self.coords = (line, col + capture.len() - 1);
+                Some(Token {
+                    kind,
+                    value: capture,
+                })
+            },
+            // Whitespace
             None => self.next(),
         }
+
     }
+
 }
 
 impl<'a> Iterator for Lexer<'a> {
@@ -85,12 +93,14 @@ impl<'a> Iterator for Lexer<'a> {
 
         let current = &self.program[self.cursor..];
 
-        // Iterates over all the tokens in REGEX_SET and check if the current string matches any token
         for (reg, tok_type) in REGEX_SET {
-            match Regex::new(reg).unwrap().captures(current) {
-                Some(caps) => return self.match_token(tok_type, caps.get(0).unwrap().as_str()),
-                None => continue,
+
+            let captured_regex = Regex::new(reg).unwrap().captures(current);
+
+            if let Some(caps) = captured_regex {
+                self.match_token(tok_type, caps.get(0).unwrap().as_str())
             }
+
         }
 
         None
