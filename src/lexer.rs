@@ -41,6 +41,7 @@ const REGEX_SET: [(&str, Option<Kind>); 25] = [
 pub struct Lexer<'a> {
     program: &'a str,
     cursor: usize,
+    pub peeked: Option<Token<'a>>,
     pub coords: (usize, usize)
 }
 
@@ -49,6 +50,7 @@ impl<'a> Lexer<'a> {
         Self {
             program,
             cursor: 0,
+            peeked: None,
             coords: (1, 1)
         }
     }
@@ -75,11 +77,13 @@ impl<'a> Lexer<'a> {
                     value: capture,
                 })
             },
+
             // Whitespace
             None => self.next(),
         }
 
     }
+
 
 }
 
@@ -93,16 +97,19 @@ impl<'a> Iterator for Lexer<'a> {
 
         let current = &self.program[self.cursor..];
 
+        let next = self.peeked.clone();
+
         for (reg, tok_type) in REGEX_SET {
 
             let captured_regex = Regex::new(reg).unwrap().captures(current);
 
             if let Some(caps) = captured_regex {
-                self.match_token(tok_type, caps.get(0).unwrap().as_str())
+                self.peeked = self.match_token(tok_type, caps.get(0).unwrap().as_str())
             }
 
         }
 
-        None
+        println!("{:?}", next);
+        next
     }
 }

@@ -5,6 +5,7 @@ mod parser;
 // mod typechecker;
 
 use clap::{Parser, Subcommand};
+use lexer::Lexer;
 use parser::Parser as KarmParser;
 use core::panic;
 use std::{fs, process::exit};
@@ -52,7 +53,9 @@ fn build(path: &String, cli: &Cli) {
         Err(e) => panic!("{e}"),
     };
 
-    let ast = match KarmParser::new(&program).program() {
+    let mut lexer = Lexer::new(&program);
+
+    let ast = match KarmParser::new(&mut lexer).program() {
         Ok(ast) => ast,
         Err(err) => {
             println!("{err}");

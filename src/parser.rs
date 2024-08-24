@@ -47,12 +47,12 @@ pub enum Literal {
 pub struct Program(pub Vec<Expr>);
 
 pub struct Parser<'a> {
-    lexer: Lexer<'a>,
+    lexer: &'a mut Lexer<'a>, 
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(program: &'a str) -> Self {
-        let lexer = Lexer::new(program);
+    pub fn new(lexer: &'a mut Lexer<'a>) -> Self {
+        lexer.next(); // First token is a `None`
         Self {
             lexer,
         }
@@ -85,11 +85,9 @@ impl<'a> Parser<'a> {
         let next_token = match self.peek() {
             Some(token) => token,
             None => {
-                return Err(SyntaxError(
-                    vec![self.peek().unwrap().kind],
-                    None,
-                    self.lexer.coords
-                ))
+                return Err(
+                    SyntaxError("Attempting to parse an unrecognized token.".to_owned(), self.lexer.coords)
+                )
             }
         };
 
@@ -97,8 +95,7 @@ impl<'a> Parser<'a> {
             Kind::Lam => self.lam_expr(),
             Kind::Use => self.use_expr(),
             _ => Err(SyntaxError(
-                vec![Kind::Lam],
-                Some(next_token.kind),
+                "Only UseExprs and LamExprs are allowed on the toplevel.".to_owned(),
                 self.lexer.coords
             )),
         }
@@ -237,7 +234,7 @@ impl<'a> Parser<'a> {
 
         Ok(left)
     }
-
+    
     // Operation such as *, /
     fn high_prec_expr(&mut self) -> Result<Expr, SyntaxError> {
 
@@ -301,34 +298,31 @@ impl<'a> Parser<'a> {
         Ok(Expr::Var(id))
     }
 
-    fn peek(&self) -> Option<&Token> {
-        self.lexer.peekable().peek()
+    fn peek(&self) -> Option<Token<'a>> {
+        self.lexer.peeked.clone()
     }
 
+    // Mutates the Lexer (and therefore the Parser) by its use of lexer.next()
     fn next(&mut self, kind_target: &Kind) -> Result<Token, SyntaxError> {
 
-        let t: Token = match self.peek() {
-            Some(val) => *val,
+        let next = self.lexer.next();
+
+        let t = match next {
+            Some(val) => val,
 
             // The sequence does not match any token
             None => {
-                return Err(SyntaxError(
-                    vec![*kind_target],
-                    None,
-                    self.lexer.coords
-                ))
+                return Err(
+                    SyntaxError("Attempting to parse an unrecognized token.".to_owned(), self.lexer.coords)
+                )
             }
         };
 
         if &t.kind != kind_target {
-            return Err(SyntaxError(
-                vec![*kind_target],
-                Some(t.kind),
-                self.lexer.coords
-            ));
+            return Err(
+                SyntaxError(format!("Expected token {:?}, got {:?}", vec![*kind_target], t.kind).to_owned(), self.lexer.coords)
+            );
         }
-
-        self.lexer.next();
 
         Ok(t)
     }
@@ -358,7 +352,7 @@ mod tests {
     #[test]
     fn fib_func() {
         assert_eq!(
-            Parser::new(r#"lam fib :: n -> if n <= 1 ? n : fib(n - 1) + fib(n - 2);"#)
+            Parser::new(&mut Lexer::new(r#"lam fib :: n -> if n <= 1 ? n : fib(n - 1) + fib(n - 2);"#))
                 .program()
                 .unwrap(),
             Program(vec![Expr::LamDef {
