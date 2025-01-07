@@ -1,5 +1,5 @@
 # Karm Language
-A simple language based on expressions and with a pure functional twist.
+A simple language inspired by StandardML.
 In my journey of understanding how compilers works, there is KARM. It's only a project but it's kind of like my baby. Just a little language, with a grammar and a syntax that I made myself.
 
 # Summary
@@ -23,36 +23,49 @@ To submit your code, create a PR on the `dev` branch, which will be reviewed lat
 Please document all your code, especially the structs fields and the functions by providing their specification. You can get inspirations from the actual code.
 
 # Technical specificities
+> [!CAUTION]
+> This section, especially the grammar, is subject to changes.
 Here is the BNF of the language's grammar :
-```html
-<program> ::= <expr>*
+```ebnf
+program = { expr };
 
-<expr> ::= <lam> ';'
+expr = let | call | if-expr | question | '(' expr ')';
 
-<lam> ::= 'fn' <id> ['::' (<id> ',')*] '->' <content-expr>
+let = 'let' id '=' ( type | fun ) [ 'in' expr ];
 
-<content-expr> ::= (<if> | <lam-call> | <term>)
+type = 'type' ( product | sum );
 
-<if> ::= 'if' <lam-call> '?' <content-expr> ':' <content-expr>
+fun = [ 'infix' ] 'fun' [{ id [ ',' id ] }] '|->' expr;
 
-<term> ::= (<literal> | <lam-call> | <var>)
+call = id [ '(' { id ',' } ')' ];
 
-<literal> ::= ('+w/' | '+d/')
+if-expr = 'if' expr 'then' expr 'else' expr;
 
-<lam-call> ::= <id> '(' [<content-expr>*] ')'
+question = '?' expr;
 
-<var> ::= <id>
+term = id | literal;
+
+literal = numbers | strings | booleans | chars;
 ``` 
 ## Examples
 
 ### Hello World!
-```rust
-fn main -> puts("Hello, World");
+```ocaml
+let main = print("Hello, World");
 ```
-(The `puts()` function will be part of the standard library)
+(The `print` function will be part of the standard library)
 
 ### Fibonacci
 Basic implementation of the fibonacci sequence in Karm :
-```rust
-fn fib :: n -> if n <= 1 ? n : fib(n - 1) + fib(n - 2);
+```ocaml
+let fib n = if n <= 1 then n else fib(n - 1) + fib(n - 2);
 ```
+
+### Usage for question exprs
+```ocaml
+let show x =
+    if (? x: Str) then print(x)
+    else if (? x: Int) then printf("{i}", x)
+    else if (? x: Bool) then printf("{b}", x);
+```
+
